@@ -1,6 +1,6 @@
 from django.urls import path, include
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
-from .views import RegisterView, UserProfileView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView 
+from .views import RegisterView, UserProfileView, CustomGoogleLogin
 
 
 urlpatterns = [
@@ -10,6 +10,8 @@ urlpatterns = [
     path('token/verify/', TokenVerifyView.as_view(), name='token_verify'),
     path('profile/', UserProfileView.as_view(), name='profile'),
 
+    path('social/login/token/', CustomGoogleLogin.as_view(), name='google_login'),
+    path('social/', include('allauth.urls')),
 ]
 
 
