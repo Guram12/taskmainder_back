@@ -264,6 +264,44 @@ SOCIALACCOUNT_PROVIDERS = {
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
+# ============================================  email sending gettings =====================================
+
+
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp-relay.sendinblue.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = config('BREVO_EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = config('BREVO_EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = 'guramshanidze44@gmail.com'
+
+ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_CONFIRM_EMAIL_ON_GET = True
+ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS = 3
+ACCOUNT_EMAIL_SUBJECT_PREFIX = 'Your Subject Prefix - '
+ACCOUNT_LOGIN_ATTEMPTS_LIMIT = 5
+ACCOUNT_LOGIN_ATTEMPTS_TIMEOUT = 300
+
+
+
+
+FRONTEND_URL = 'http://localhost:5173'
+
+
+
+
+
+
+
+# ==========================================================================================================
+
+
+
+
+
 
 
 # LOGGING = {

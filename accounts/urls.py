@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView 
-from .views import RegisterView, UserProfileView, CustomGoogleLogin 
+from .views import RegisterView, UserProfileView, CustomGoogleLogin , CustomConfirmEmailView
 
 
 urlpatterns = [
@@ -12,6 +12,10 @@ urlpatterns = [
 
     path('social/login/token/', CustomGoogleLogin.as_view(), name='google_login'),
     path('social/', include('allauth.urls')),
+
+    # email confirm endpoint 
+    path('confirm-email/<str:key>/', CustomConfirmEmailView.as_view(), name='account_confirm_email'),
+
 ]
 
 

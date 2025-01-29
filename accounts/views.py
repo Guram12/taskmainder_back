@@ -101,3 +101,35 @@ class CustomGoogleLogin(APIView):
             username = f"{base_username}_{get_random_string(5)}"
             if not CustomUser.objects.filter(username=username).exists():
                 return username
+            
+
+
+
+
+# ========================================   email confirm view ========================================
+
+
+
+from allauth.account.views import ConfirmEmailView
+from allauth.account.models import EmailConfirmationHMAC
+from django.shortcuts import redirect
+from django.conf import settings
+import logging
+
+logger = logging.getLogger(__name__)
+
+class CustomConfirmEmailView(ConfirmEmailView):
+    def get(self, request, *args, **kwargs):
+        logger.info("Entering CustomConfirmEmailView")
+        confirmation = EmailConfirmationHMAC.from_key(kwargs['key'])
+        if confirmation:
+            logger.info("Confirmation found, confirming...")
+            confirmation.confirm(request)
+            user = confirmation.email_address.user
+            user.is_email_verified = True  
+            user.save()
+            # Redirect to frontend login page with query parameter
+            return redirect(f'{settings.FRONTEND_URL}?isAuthenticated=false')  
+        else:
+            logger.error("Confirmation not found, returning invalid template")
+            return redirect(f'{settings.FRONTEND_URL}') 
