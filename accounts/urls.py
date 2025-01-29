@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView 
-from .views import RegisterView, UserProfileView, CustomGoogleLogin
+from .views import RegisterView, UserProfileView, CustomGoogleLogin 
 
 
 urlpatterns = [

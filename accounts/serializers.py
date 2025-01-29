@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import CustomUser
-
+from django.conf import settings
 
 
 
@@ -12,11 +12,12 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ('email', 'username', 'password', 'phone_number', 'profile_picture')
 
     def create(self, validated_data):
+        profile_picture = validated_data.get('profile_picture', settings.DEFAULT_PROFILE_PICTURE_URL)
         user = CustomUser.objects.create_user(
             email=validated_data['email'],
             username=validated_data['username'],
             password=validated_data['password'],
-            profile_picture=validated_data.get('profile_picture', ''),
+            profile_picture=profile_picture,
             phone_number=validated_data.get('phone_number', '')
         )
         return user

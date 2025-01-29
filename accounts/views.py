@@ -20,6 +20,8 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
     
 
 
+
+
 # =========================== google login view ===============================
 from rest_framework import status
 from rest_framework.response import Response
@@ -81,6 +83,8 @@ class CustomGoogleLogin(APIView):
         user, created = CustomUser.objects.get_or_create(email=email, defaults={
             'username': username,
             'is_email_verified': True,
+            'profile_picture': settings.DEFAULT_PROFILE_PICTURE_URL,  # Set the default profile picture URL
+
         })
 
         if created:
