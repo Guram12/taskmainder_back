@@ -18,6 +18,36 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
     def get_object(self):
         return self.request.user
     
+# ================================   custom login view ====================================
+from rest_framework_simplejwt.views import TokenObtainPairView
+from django.contrib.auth import authenticate
+
+
+
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    def post(self , request, *args, **kwargs):
+        email= request.data.get('email')
+        password = request.data.get('password')
+        user= authenticate(request, email = email , password = password)
+
+        if user is not None:
+            if user.is_email_verified:
+                return super().post(request, args, kwargs)
+            else:
+                return Response({'error': 'Email is not verified'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+
+
+
+
+
+
 
 
 
