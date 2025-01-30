@@ -29,6 +29,9 @@ class Task(models.Model):
     list = models.ForeignKey(List, related_name='tasks', on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     due_date = models.DateTimeField(blank=True, null=True)
+    completed = models.BooleanField(default=False)
+
+
 
     def __str__(self):
         return self.title
