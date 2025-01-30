@@ -197,7 +197,7 @@ DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 # MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_LOCATION}/'
 
 # Add this line to your settings.py
-DEFAULT_PROFILE_PICTURE_URL = 'profile_pictures/default_profile_img/default_profile_img_1.png'
+DEFAULT_PROFILE_PICTURE_URL = 'profile_pictures/default_profile_img/default_profile_img_1.jpg'
 
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles') 
@@ -281,25 +281,36 @@ ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_AUTHENTICATION_METHOD = 'email'
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True
 ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS = 3
-ACCOUNT_EMAIL_SUBJECT_PREFIX = 'Your Subject Prefix - '
-ACCOUNT_LOGIN_ATTEMPTS_LIMIT = 5
-ACCOUNT_LOGIN_ATTEMPTS_TIMEOUT = 300
-
 
 
 
 FRONTEND_URL = 'http://localhost:5173'
 
+ACCOUNT_EMAIL_CONFIRMATION_HTML_EMAIL = True
 
+ACCOUNT_ADAPTER = 'accounts.adapter.CustomAccountAdapter'
 
-
-
+ACCOUNT_EMAIL_CONFIRMATION_TEMPLATE = 'accounts/email_confirmation_message.html'
 
 
 # ==========================================================================================================
 
 
-
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
 
 
 
