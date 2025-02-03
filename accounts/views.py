@@ -131,8 +131,21 @@ class CustomGoogleLogin(APIView):
             username = f"{base_username}_{get_random_string(5)}"
             if not CustomUser.objects.filter(username=username).exists():
                 return username
-            
 
+
+# ====================================  update timezone view if user logs is with google =========================
+
+from rest_framework import generics
+from rest_framework.permissions import IsAuthenticated
+from .serializers import ProfileFinishSerializer
+
+class ProfileFinishView(generics.UpdateAPIView):
+    queryset = CustomUser.objects.all()
+    permission_classes = (IsAuthenticated,)
+    serializer_class = ProfileFinishSerializer
+
+    def get_object(self):
+        return self.request.user
 
 
 

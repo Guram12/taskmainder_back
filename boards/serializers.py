@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Board , Task, List
+import pytz
 
 
 
@@ -9,6 +10,12 @@ class TaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
         fields = '__all__'
+
+    def get_created_at(self, obj):
+        user = self.context['request'].user
+        user_timezone = pytz.timezone(user.timezone)
+        return obj.created_at.astimezone(user_timezone).isoformat()
+
 
 class ListSerializer(serializers.ModelSerializer):
     tasks = TaskSerializer(many=True, read_only=True)

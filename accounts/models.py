@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf  import settings
+import pytz
 
 
 def user_directory_path(instance, filename):
@@ -22,6 +23,7 @@ class CustomUser(AbstractUser):
         default=get_default_profile_img_url
     )    
     is_email_verified = models.BooleanField(default=False)  
+    timezone = models.CharField(max_length=50, choices=[(tz, tz) for tz in pytz.all_timezones], default='UTC', blank=True, null=True)
 
 
     USERNAME_FIELD = 'email'
@@ -39,9 +41,6 @@ class CustomUser(AbstractUser):
         except CustomUser.DoesNotExist:
             pass
         super(CustomUser, self).save(*args, **kwargs)
-
-
-
 
 
 
