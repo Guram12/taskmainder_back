@@ -8,7 +8,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ('email', 'username', 'password', 'phone_number', 'profile_picture')
+        fields = ('email', 'username', 'password', 'phone_number', 'profile_picture', 'timezone')
 
     def create(self, validated_data):
         profile_picture = validated_data.get('profile_picture', settings.DEFAULT_PROFILE_PICTURE_URL)
@@ -17,6 +17,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             username=validated_data['username'],
             password=validated_data['password'],
             profile_picture=profile_picture,
+            timezone=validated_data.get('timezone', 'UTC'),
             phone_number=validated_data.get('phone_number', '')
         )
         send_email_confirmation(self.context['request'], user)
@@ -28,11 +29,14 @@ class RegisterSerializer(serializers.ModelSerializer):
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ('email', 'username', 'phone_number', 'profile_picture')
+        fields = ('email', 'username', 'phone_number', 'profile_picture' , 'timezone')
 
 
 
-
+class ProfileFinishSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ( 'username' , 'phone_number','timezone')
 
 
 
