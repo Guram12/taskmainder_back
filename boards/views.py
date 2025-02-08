@@ -36,8 +36,9 @@ class TaskViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         list_id = self.request.query_params.get('list_id')
-        return self.queryset.filter(list_id=list_id)
-
+        if list_id:
+            return self.queryset.filter(list_id=list_id)
+        return self.queryset
 
 
 
