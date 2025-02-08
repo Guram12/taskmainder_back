@@ -32,7 +32,7 @@ class BoardSerializer(serializers.ModelSerializer):
         model = Board
         fields = '__all__'
         extra_fields = ['owner_email']
-
+        read_only_fields = ['owner']
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
