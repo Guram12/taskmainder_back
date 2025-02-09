@@ -3,6 +3,7 @@ from .models import Board, List, Task
 from rest_framework import viewsets
 from .permisions import IsOwner
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import action
 
 
 class BoardViewSet(viewsets.ModelViewSet):
@@ -40,8 +41,18 @@ class TaskViewSet(viewsets.ModelViewSet):
             return self.queryset.filter(list_id=list_id)
         return self.queryset
 
-
-
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def move(self, request, pk=None):
+        task = self.get_object()
+        new_list_id = request.data.get('new_list_id')
+        try:
+            new_list = List.objects.get(id=new_list_id)
+        except List.DoesNotExist:
+            return Response({'error': 'List not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        task.list = new_list
+        task.save()
+        return Response({'status': 'task moved'}, status=status.HTTP_200_OK)
 
 
 
