@@ -60,6 +60,8 @@ INSTALLED_APPS = [
     'boards',
     'storages',
     'requests',
+    'channels',
+
 ]
 
 SITE_ID = 1
@@ -340,6 +342,22 @@ TEMPLATES = [
 
 
 
+
+# ==========================================     django channels settings    ========================================
+
+
+
+
+ASGI_APPLICATION = 'taskmainder.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
+        },
+    },
+}
 
 
 
