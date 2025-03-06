@@ -3,7 +3,7 @@ from channels.layers import get_channel_layer
 from .serializers import TaskSerializer, BoardSerializer, ListSerializer
 from .models import Board, List, Task
 from rest_framework import viewsets
-from .permisions import IsOwner
+from .permissions import IsOwner
 from rest_framework.permissions import IsAuthenticated
 
 class BoardViewSet(viewsets.ModelViewSet):
