@@ -1,3 +1,7 @@
+import django
+django.setup()
+
+
 import os
 from channels.auth import AuthMiddlewareStack
 from channels.routing import ProtocolTypeRouter, URLRouter

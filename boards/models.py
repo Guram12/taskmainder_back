@@ -7,6 +7,8 @@ class Board(models.Model):
   name = models.CharField(max_length=255)
   owner = models.ForeignKey(settings.AUTH_USER_MODEL  , related_name='boards' , on_delete=models.CASCADE)
   created_at = models.DateField(auto_now_add=True)
+  members = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='boards_members', blank=True)
+
 
   def __str__(self):
     return self.name
@@ -35,19 +37,4 @@ class Task(models.Model):
 
     def __str__(self):
         return self.title
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
