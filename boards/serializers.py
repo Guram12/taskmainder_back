@@ -1,21 +1,11 @@
 from rest_framework import serializers
-from .models import Board , Task, List
-import pytz
-
-
-
-
+from .models import Board, Task, List
+from accounts.models import CustomUser
 
 class TaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = Task
         fields = '__all__'
-
-    def get_created_at(self, obj):
-        user = self.context['request'].user
-        user_timezone = pytz.timezone(user.timezone)
-        return obj.created_at.astimezone(user_timezone).isoformat()
-
 
 class ListSerializer(serializers.ModelSerializer):
     tasks = TaskSerializer(many=True, read_only=True)
@@ -24,34 +14,16 @@ class ListSerializer(serializers.ModelSerializer):
         model = List
         fields = '__all__'
 
+class CustomUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ['id', 'email', 'username']
+
 class BoardSerializer(serializers.ModelSerializer):
     lists = ListSerializer(many=True, read_only=True)
     owner_email = serializers.EmailField(source='owner.email', read_only=True)
+    members = CustomUserSerializer(many=True, read_only=True)
 
     class Meta:
         model = Board
         fields = '__all__'
-        extra_fields = ['owner_email']
-        read_only_fields = ['owner']
-
-    def to_representation(self, instance):
-        representation = super().to_representation(instance)
-        representation['owner'] = representation.pop('owner_email')
-        return representation
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

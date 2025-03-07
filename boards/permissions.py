@@ -1,9 +1,9 @@
 from rest_framework import permissions
 
-class IsOwner(permissions.BasePermission):
+class IsOwnerOrMember(permissions.BasePermission):
     """
-    Custom permission to only allow owners of an object to view or edit it.
+    Custom permission to only allow owners or members of a board to view or edit it.
     """
     def has_object_permission(self, request, view, obj):
-        # Object-level permission to only allow owners of the object to view/edit it.
-        return obj.owner == request.user
+        # Object-level permission to only allow owners or members of the board to view/edit it.
+        return obj.owner == request.user or request.user in obj.members.all()

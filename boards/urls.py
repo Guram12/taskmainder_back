@@ -25,9 +25,6 @@ urlpatterns = [
 # sudo systemctl enable redis-server
 
 
-# daphne -b 0.0.0.0 -p 8000 taskmainder.asgi:application
-
-
 
 # export DJANGO_SETTINGS_MODULE=taskmainder.settings
 # daphne -b 0.0.0.0 -p 8000 taskmainder.asgi:application
