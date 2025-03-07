@@ -3,16 +3,20 @@ from channels.layers import get_channel_layer
 from .serializers import TaskSerializer, BoardSerializer, ListSerializer
 from .models import Board, List, Task
 from rest_framework import viewsets
-from .permissions import IsOwner
+from .permissions import IsOwnerOrMember
 from rest_framework.permissions import IsAuthenticated
+from django.db import models
+
+
 
 class BoardViewSet(viewsets.ModelViewSet):
     queryset = Board.objects.all()
     serializer_class = BoardSerializer
-    permission_classes = [IsAuthenticated, IsOwner]
+    permission_classes = [IsAuthenticated, IsOwnerOrMember]
 
     def get_queryset(self):
-        return self.queryset.filter(owner=self.request.user)
+        user = self.request.user
+        return Board.objects.filter(models.Q(owner=user) | models.Q(members=user))
 
     def perform_create(self, serializer):
         board = serializer.save(owner=self.request.user)
@@ -41,7 +45,7 @@ class BoardViewSet(viewsets.ModelViewSet):
 class ListViewSet(viewsets.ModelViewSet):
     queryset = List.objects.all()
     serializer_class = ListSerializer
-    permission_classes = [IsAuthenticated, IsOwner]
+    permission_classes = [IsAuthenticated, IsOwnerOrMember]
 
     def get_queryset(self):
         return self.queryset.filter(board__owner=self.request.user)
@@ -73,7 +77,7 @@ class ListViewSet(viewsets.ModelViewSet):
 class TaskViewSet(viewsets.ModelViewSet):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
-    permission_classes = [IsAuthenticated, IsOwner]
+    permission_classes = [IsAuthenticated, IsOwnerOrMember]
 
     def get_queryset(self):
         return self.queryset.filter(list__board__owner=self.request.user)
@@ -96,7 +100,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         async_to_sync(channel_layer.group_send)(
             f'board_{board_id}',
             {
-                'type': 'task_message',
+                # 'type': 'task_message',
                 'action': action,
                 'payload': payload
             }
