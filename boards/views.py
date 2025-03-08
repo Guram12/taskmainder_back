@@ -6,6 +6,7 @@ from rest_framework import viewsets
 from .permissions import IsOwnerOrMember
 from rest_framework.permissions import IsAuthenticated
 from django.db import models
+from rest_framework.decorators import action
 
 
 
@@ -41,6 +42,19 @@ class BoardViewSet(viewsets.ModelViewSet):
                 'payload': payload
             }
         )
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsOwnerOrMember])
+    def add_member(self, request, pk=None):
+        board = self.get_object()
+        email = request.data.get('email')
+        serializer = self.get_serializer(board)
+        try:
+            board = serializer.add_member(board, email)
+            return Response(serializer.data)
+        except ValidationError as e:
+            return Response({'detail': str(e)}, status=400)
+
+
 
 class ListViewSet(viewsets.ModelViewSet):
     queryset = List.objects.all()
