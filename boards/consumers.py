@@ -1,6 +1,7 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from .models import Task, List
+from accounts.models import CustomUser
 
 class BoardConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -31,6 +32,8 @@ class BoardConsumer(AsyncWebsocketConsumer):
 
         if action == 'move_task':
             await self.move_task(payload)
+        elif action == 'set_status':
+            await self.set_status(payload)
 
     async def move_task(self, payload):
         print('Moving task:', payload)
@@ -58,6 +61,30 @@ class BoardConsumer(AsyncWebsocketConsumer):
             )
         except Task.DoesNotExist:
             print('Task does not exist:', task_id)
+
+    async def set_status(self, payload):
+        user_id = payload['user_id']
+        new_status = payload['new_status']
+
+        try:
+            user = await CustomUser.objects.aget(id=user_id)
+            user.status = new_status
+            await user.asave()
+
+            # Notify group about the user status change
+            await self.channel_layer.group_send(
+                self.board_group_name,
+                {
+                    'type': 'board_message',
+                    'action': 'set_status',
+                    'payload': {
+                        'user_id': user_id,
+                        'new_status': new_status
+                    }
+                }
+            )
+        except CustomUser.DoesNotExist:
+            print('User does not exist:', user_id)
 
     async def board_message(self, event):
         action = event['action']
