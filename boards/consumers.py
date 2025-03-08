@@ -1,7 +1,7 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from .models import Task, List
-from ..accounts.models import CustomUser
+from accounts.models import CustomUser
 
 class BoardConsumer(AsyncWebsocketConsumer):
     async def connect(self):
