@@ -1,8 +1,7 @@
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView 
 from .views import RegisterView, UserProfileView, CustomGoogleLogin , CustomConfirmEmailView \
-    , CustomTokenObtainPairView ,ProfileFinishView
-
+    , CustomTokenObtainPairView ,ProfileFinishView , UserEmailListView
 
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
@@ -16,7 +15,8 @@ urlpatterns = [
 
     # email confirm end point 
     path('confirm-email/<str:key>/', CustomConfirmEmailView.as_view(), name='account_confirm_email'),
-    path('profile-finish/', ProfileFinishView.as_view(), name='update_timezone')
+    path('profile-finish/', ProfileFinishView.as_view(), name='update_timezone'), 
+    path('user-emails/', UserEmailListView.as_view(), name='user_emails'),  # Corrected endpoint
 ]
 
 

@@ -39,6 +39,11 @@ class ProfileFinishSerializer(serializers.ModelSerializer):
         fields = ( 'username' , 'phone_number','timezone')
 
 
+class UserEmailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ['email']
+
 
 
 
