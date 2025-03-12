@@ -2,8 +2,9 @@ from rest_framework import generics
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from django.db.models import Q
 from .models import CustomUser
-from .serializers import RegisterSerializer, UserProfileSerializer
+from .serializers import RegisterSerializer, UserProfileSerializer , UserEmailSerializer
 
 class RegisterView(generics.CreateAPIView):
     queryset = CustomUser.objects.all()
@@ -18,6 +19,20 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
     def get_object(self):
         return self.request.user
     
+
+
+# ===================================  email list view ====================================
+class UserEmailListView(generics.ListAPIView):
+    serializer_class = UserEmailSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = CustomUser.objects.all()
+        search = self.request.query_params.get('search', None)
+        if search:
+            queryset = queryset.filter(Q(email__icontains=search))
+        return queryset
+
 # ================================   custom login view ====================================
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth import authenticate

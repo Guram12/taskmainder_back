@@ -1,6 +1,7 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
-from .models import Task, List
+from channels.db import database_sync_to_async
+from .models import Task, Board
 from accounts.models import CustomUser
 
 class BoardConsumer(AsyncWebsocketConsumer):
@@ -34,6 +35,8 @@ class BoardConsumer(AsyncWebsocketConsumer):
             await self.move_task(payload)
         elif action == 'set_status':
             await self.set_status(payload)
+        elif action == 'add_user':
+            await self.add_user(payload)
 
     async def move_task(self, payload):
         print('Moving task:', payload)
@@ -85,6 +88,44 @@ class BoardConsumer(AsyncWebsocketConsumer):
             )
         except CustomUser.DoesNotExist:
             print('User does not exist:', user_id)
+
+    async def add_user(self, payload):
+        emails = payload['emails']
+        board_id = payload['board_id']  # Get the board ID from the payload
+
+        for email in emails:
+            try:
+                user = await CustomUser.objects.aget(email=email)
+                await self.add_user_to_board(user, board_id)  
+
+                print('User added to board:', user.email)
+                
+                # Notify group about the new user
+                await self.channel_layer.group_send(
+                    self.board_group_name,
+                    {
+                        'type': 'board_message',
+                        'action': 'add_user',
+                        'payload': {
+                            'user_id': user.id,
+                            'email': user.email,
+                            'username': user.username,
+                            'profile_picture': user.profile_picture,
+                        }
+                    }
+                )
+            except CustomUser.DoesNotExist:
+                print('User does not exist:', email)
+
+    @database_sync_to_async
+    def add_user_to_board(self, user, board_id):
+        try:
+            board = Board.objects.get(id=board_id)
+            board.members.add(user)
+            board.save()
+            print(f'User {user.email} added to board {board_id}')
+        except Board.DoesNotExist:
+            print(f'Board does not exist: {board_id}')
 
     async def board_message(self, event):
         action = event['action']
