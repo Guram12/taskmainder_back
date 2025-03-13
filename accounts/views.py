@@ -22,16 +22,21 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
 
 
 # ===================================  email list view ====================================
+
 class UserEmailListView(generics.ListAPIView):
     serializer_class = UserEmailSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        queryset = CustomUser.objects.all()
+        queryset = CustomUser.objects.none()  # Start with an empty queryset
         search = self.request.query_params.get('search', None)
-        if search:
-            queryset = queryset.filter(Q(email__icontains=search))
+        
+        if  len(search) <= 2:
+            return queryset
+        elif search:
+            queryset = CustomUser.objects.filter(Q(email__icontains=search))
         return queryset
+    
 
 # ================================   custom login view ====================================
 from rest_framework_simplejwt.views import TokenObtainPairView
