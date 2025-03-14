@@ -8,7 +8,7 @@ class Board(models.Model):
   owner = models.ForeignKey(settings.AUTH_USER_MODEL  , related_name='boards' , on_delete=models.CASCADE)
   created_at = models.DateField(auto_now_add=True)
   members = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='boards_members', blank=True)
-
+  admins = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='boards_admins', blank=True)
 
   def __str__(self):
     return self.name

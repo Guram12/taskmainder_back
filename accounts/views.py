@@ -34,7 +34,8 @@ class UserEmailListView(generics.ListAPIView):
         if  len(search) <= 2:
             return queryset
         elif search:
-            queryset = CustomUser.objects.filter(Q(email__icontains=search))
+            # in this queryset, i should send all emails except email with current user 
+            queryset = CustomUser.objects.exclude(email=self.request.user.email).filter(Q(email__icontains=search))
         return queryset
     
 
@@ -58,17 +59,6 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 return Response({'error': 'Email is not verified'}, status=status.HTTP_400_BAD_REQUEST)
         else:
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -196,3 +186,5 @@ class CustomConfirmEmailView(ConfirmEmailView):
         else:
             logger.error("Confirmation not found, returning invalid template")
             return redirect(f'{settings.FRONTEND_URL}') 
+        
+        
