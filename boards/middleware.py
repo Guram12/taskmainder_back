@@ -14,7 +14,7 @@ def get_user(token):
         # Decode the token to get the user ID
         untoken = UntypedToken(token)
         user_id = untoken['user_id']
-        print(f"Decoded user_id: {user_id}")
+        # print(f"Decoded user_id: {user_id}")
         return User.objects.get(id=user_id)
     except (InvalidToken, TokenError) as e:
         print(f"Token error: {e}")
@@ -28,7 +28,7 @@ class TokenAuthMiddleware(BaseMiddleware):
         query_string = parse_qs(scope['query_string'].decode())
         token = query_string.get('token')
         if token:
-            print(f"Token received: {token[0]}")
+            # print(f"Token received: {token[0]}")
             scope['user'] = await get_user(token[0])
         else:
             print("No token found")

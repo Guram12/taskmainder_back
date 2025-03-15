@@ -3,14 +3,15 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from .models import Task, Board
 from accounts.models import CustomUser
+from asgiref.sync import sync_to_async
+
 
 class BoardConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.board_id = self.scope['url_route']['kwargs']['board_id']
         self.board_group_name = f'board_{self.board_id}'
 
-        print(f"Connecting user: {self.scope['user']}")
-        print(f"User details: is_authenticated={self.scope['user'].is_authenticated}, is_superuser={self.scope['user'].is_superuser}, email={self.scope['user'].email}")
+        # print(f"User details: is_authenticated={self.scope['user'].is_authenticated}, is_superuser={self.scope['user'].is_superuser}, email={self.scope['user'].email}")
 
         # Join board group
         await self.channel_layer.group_add(
@@ -72,17 +73,38 @@ class BoardConsumer(AsyncWebsocketConsumer):
         except Task.DoesNotExist:
             print('Task does not exist:', task_id)
 
+
     async def set_status(self, payload):
-        if not await self.is_owner() or not await self.is_admin():
+        is_admin = await self.is_admin()
+        is_owner = await self.is_owner()
+        print(f"is_admin=>>: {is_admin}, is_owner=>>: {is_owner}")
+
+        if not (is_admin or is_owner):
+            print("Permission denied: User is neither admin nor owner")
             return
 
         user_id = payload['user_id']
         new_status = payload['new_status']
 
         try:
-            user = await CustomUser.objects.aget(id=user_id)
-            user.status = new_status
-            await user.asave()
+            user = await sync_to_async(CustomUser.objects.get)(id=user_id)
+            board = await sync_to_async(Board.objects.get)(id=self.board_id)
+
+            if new_status == 'admin':
+                print('Adding user as admin')
+                await sync_to_async(board.admins.add)(user)
+                await sync_to_async(board.members.remove)(user)
+            elif new_status == 'member':
+                print('Removing user from admins')
+                await sync_to_async(board.admins.remove)(user)
+                await sync_to_async(board.members.add)(user)
+
+            await sync_to_async(board.save)()  # Ensure the board is saved after modification
+
+            # Verify if the user is added to the admins
+            board = await sync_to_async(Board.objects.get)(id=self.board_id)
+            is_user_admin = await sync_to_async(lambda: user in board.admins.all())()
+            print(f"User {user.email} is admin: {is_user_admin}")
 
             # Notify group about the user status change
             await self.channel_layer.group_send(
@@ -98,6 +120,9 @@ class BoardConsumer(AsyncWebsocketConsumer):
             )
         except CustomUser.DoesNotExist:
             print('User does not exist:', user_id)
+        except Board.DoesNotExist:
+            print('Board does not exist:', self.board_id)
+            
 
     async def add_user(self, payload):
         is_admin = await self.is_admin()
@@ -167,9 +192,9 @@ class BoardConsumer(AsyncWebsocketConsumer):
     def add_user_to_board(self, user, board_id):
         try:
             board = Board.objects.get(id=board_id)
-            board.members.add(user)
+            board.members.add(user)  # Add user to members, not admins
             board.save()
-            print(f'User {user.email} added to board {board_id}')
+            # print(f'User {user.email} added to board {board_id} as a member')
         except Board.DoesNotExist:
             print(f'Board does not exist: {board_id}')
 
@@ -177,7 +202,7 @@ class BoardConsumer(AsyncWebsocketConsumer):
     def is_owner(self):
         try:
             board = Board.objects.get(id=self.board_id)
-            print(f"Board owner: {board.owner}, Current user: {self.scope['user']}")
+            # print(f"Board owner: {board.owner}, Current user: {self.scope['user']}")
             return board.owner == self.scope["user"]
         except Board.DoesNotExist:
             print(f"Board does not exist: {self.board_id}")
@@ -187,7 +212,7 @@ class BoardConsumer(AsyncWebsocketConsumer):
     def is_admin(self):
         try:
             board = Board.objects.get(id=self.board_id)
-            print(f"Board admins: {board.admins.all()}, Current user: {self.scope['user']}")
+            # print(f"Board admins: {board.admins.all()}, Current user: {self.scope['user']}")
             return self.scope["user"] in board.admins.all()
         except Board.DoesNotExist:
             print(f"Board does not exist: {self.board_id}")

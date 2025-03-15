@@ -31,6 +31,8 @@ class BoardUserSerializer(serializers.ModelSerializer):
         board = self.context['board']
         if obj == board.owner:
             return 'owner'
+        elif obj in board.admins.all():
+            return 'admin'
         return 'member'
 
 class BoardSerializer(serializers.ModelSerializer):
@@ -43,7 +45,7 @@ class BoardSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_board_users(self, obj):
-        users = [obj.owner] + list(obj.members.all())
+        users = [obj.owner] + list(obj.members.all()) + list(obj.admins.all())
         serializer = BoardUserSerializer(users, many=True, context={'board': obj})
         return serializer.data
 
