@@ -17,7 +17,7 @@ class BoardViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        return Board.objects.filter(models.Q(owner=user) | models.Q(members=user))
+        return Board.objects.filter(models.Q(owner=user) | models.Q(admins=user)  | models.Q(members=user))
 
     def perform_create(self, serializer):
         board = serializer.save(owner=self.request.user)
