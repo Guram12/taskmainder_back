@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Board, Task, List
+from .models import Board, Task, List, BoardMembership
 from accounts.models import CustomUser
 from rest_framework.exceptions import ValidationError
 
@@ -21,23 +21,22 @@ class CustomUserSerializer(serializers.ModelSerializer):
         fields = ['id', 'email', 'username', 'profile_picture']
 
 class BoardUserSerializer(serializers.ModelSerializer):
-    status = serializers.SerializerMethodField()
+    user_status = serializers.SerializerMethodField()
 
     class Meta:
         model = CustomUser
-        fields = ['id', 'email', 'username', 'profile_picture', 'status']
+        fields = ['id', 'email', 'username', 'profile_picture', 'user_status']
 
-    def get_status(self, obj):
-        board = self.context['board']
-        if obj == board.owner:
-            return 'owner'
-        elif obj in board.admins.all():
-            return 'admin'
-        return 'member'
+    def get_user_status(self, obj):
+        board = self.context.get('board')
+        if board:
+            membership = BoardMembership.objects.filter(board=board, user=obj).first()
+            if membership:
+                return membership.user_status
+        return None
 
 class BoardSerializer(serializers.ModelSerializer):
     lists = ListSerializer(many=True, read_only=True)
-    owner_email = serializers.EmailField(source='owner.email', read_only=True)
     board_users = serializers.SerializerMethodField()
 
     class Meta:
@@ -45,18 +44,19 @@ class BoardSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def get_board_users(self, obj):
-        users = [obj.owner] + list(obj.members.all()) + list(obj.admins.all())
+        memberships = BoardMembership.objects.filter(board=obj)
+        users = [membership.user for membership in memberships]
         serializer = BoardUserSerializer(users, many=True, context={'board': obj})
         return serializer.data
 
-    def add_member(self, board, email):
+    def add_member(self, board, email, user_status):
         try:
             user = CustomUser.objects.get(email=email)
         except CustomUser.DoesNotExist:
             raise ValidationError("User with this email does not exist.")
         
-        if user in board.members.all():
+        if BoardMembership.objects.filter(board=board, user=user).exists():
             raise ValidationError("User is already a member of this board.")
         
-        board.members.add(user)
+        BoardMembership.objects.create(board=board, user=user, user_status=user_status)
         return board
