@@ -1,14 +1,14 @@
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from .serializers import TaskSerializer, BoardSerializer, ListSerializer
-from .models import Board, List, Task
+from .models import Board, List, Task, BoardMembership
 from rest_framework import viewsets
 from .permissions import IsOwnerOrMember
 from rest_framework.permissions import IsAuthenticated
 from django.db import models
 from rest_framework.decorators import action
-
-
+from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
 
 class BoardViewSet(viewsets.ModelViewSet):
     queryset = Board.objects.all()
@@ -17,10 +17,13 @@ class BoardViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        return Board.objects.filter(models.Q(owner=user) | models.Q(admins=user)  | models.Q(members=user))
+        return Board.objects.filter(
+            models.Q(boardmembership__user=user)
+        )
 
     def perform_create(self, serializer):
-        board = serializer.save(owner=self.request.user)
+        board = serializer.save()
+        BoardMembership.objects.create(board=board, user=self.request.user, user_status='owner')
         self.notify_board_update(board.id, 'create', serializer.data)
 
     def perform_update(self, serializer):
@@ -42,19 +45,18 @@ class BoardViewSet(viewsets.ModelViewSet):
                 'payload': payload
             }
         )
-    
+
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated, IsOwnerOrMember])
     def add_member(self, request, pk=None):
         board = self.get_object()
         email = request.data.get('email')
+        user_status = request.data.get('user_status', 'member')
         serializer = self.get_serializer(board)
         try:
-            board = serializer.add_member(board, email)
+            board = serializer.add_member(board, email, user_status)
             return Response(serializer.data)
         except ValidationError as e:
             return Response({'detail': str(e)}, status=400)
-
-
 
 class ListViewSet(viewsets.ModelViewSet):
     queryset = List.objects.all()
@@ -62,7 +64,7 @@ class ListViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsOwnerOrMember]
 
     def get_queryset(self):
-        return self.queryset.filter(board__owner=self.request.user)
+        return self.queryset.filter(board__boardmembership__user=self.request.user)
 
     def perform_create(self, serializer):
         list_instance = serializer.save()
@@ -94,7 +96,7 @@ class TaskViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsOwnerOrMember]
 
     def get_queryset(self):
-        return self.queryset.filter(list__board__owner=self.request.user)
+        return self.queryset.filter(list__board__boardmembership__user=self.request.user)
 
     def perform_create(self, serializer):
         task_instance = serializer.save()
@@ -114,7 +116,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         async_to_sync(channel_layer.group_send)(
             f'board_{board_id}',
             {
-                # 'type': 'task_message',
+                'type': 'task_message',
                 'action': action,
                 'payload': payload
             }
