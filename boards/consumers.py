@@ -116,6 +116,10 @@ class BoardConsumer(AsyncWebsocketConsumer):
     async def delete_user_from_board(self, payload):
         user_id = payload['user_id']
         board_id = payload['board_id']
+        print(self.scope['user'])
+        if not await self.is_owner_or_admin():
+            print('Permission denied: Only owners and admins can delete users.')
+            return
 
         try:
             user = await CustomUser.objects.aget(id=user_id)
@@ -132,8 +136,17 @@ class BoardConsumer(AsyncWebsocketConsumer):
                     }
                 }
             )
+            
         except (CustomUser.DoesNotExist, BoardMembership.DoesNotExist):
             print('User or membership does not exist:', user_id, board_id)
+
+    @database_sync_to_async
+    def is_owner_or_admin(self):
+        try:
+            membership = BoardMembership.objects.get(board_id=self.board_id, user=self.scope["user"])
+            return membership.user_status in ['owner', 'admin']
+        except BoardMembership.DoesNotExist:
+            return False
 
     @database_sync_to_async
     def add_user_to_board(self, user, board_id):
