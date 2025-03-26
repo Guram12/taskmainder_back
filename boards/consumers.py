@@ -36,6 +36,9 @@ class BoardConsumer(AsyncWebsocketConsumer):
             await self.add_user(payload)
         elif action == 'delete_user':
             await self.delete_user_from_board(payload)
+        elif action == 'add_list':
+            await self.add_list(payload)
+
 
     async def move_task(self, payload):
         task_id = payload['task_id']
@@ -61,6 +64,33 @@ class BoardConsumer(AsyncWebsocketConsumer):
             )
         except Task.DoesNotExist:
             print('Task does not exist:', task_id)
+
+    async def add_list(self, payload):
+        list_name = payload['name']
+        board_id = payload['board']
+
+        try:
+            board = await Board.objects.aget(id=board_id)
+            new_list = await sync_to_async(board.lists.create)(name=list_name)
+
+            await self.channel_layer.group_send(
+                self.board_group_name,
+                {
+                    'type': 'board_message',
+                    'action': 'add_list',
+                    'payload': {
+                        'id': new_list.id,
+                        'name': new_list.name,
+                        'created_at': new_list.created_at.isoformat(),
+                        'board': board_id,
+                        'tasks': []
+                    }
+                }
+            )
+        except Board.DoesNotExist:
+            print('Board does not exist:', board_id)
+
+
 
     async def set_status(self, payload):
         user_id = payload['user_id']
@@ -136,7 +166,7 @@ class BoardConsumer(AsyncWebsocketConsumer):
                     }
                 }
             )
-            
+
         except (CustomUser.DoesNotExist, BoardMembership.DoesNotExist):
             print('User or membership does not exist:', user_id, board_id)
 
