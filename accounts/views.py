@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.db.models import Q
 from .models import CustomUser
-from .serializers import RegisterSerializer, UserProfileSerializer , UserEmailSerializer
+from .serializers import RegisterSerializer, UserProfileSerializer , UserEmailSerializer, UpdateProfilePictureSerializer
 
 class RegisterView(generics.CreateAPIView):
     queryset = CustomUser.objects.all()
@@ -188,3 +188,24 @@ class CustomConfirmEmailView(ConfirmEmailView):
             return redirect(f'{settings.FRONTEND_URL}') 
         
         
+
+
+
+# =========================================== Update Profile Picture View ===========================================
+
+
+class UpdateProfilePictureView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, *args, **kwargs):
+        user = request.user
+        serializer = UpdateProfilePictureSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Profile picture updated successfully"}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+# ===============================================================================================================
+
