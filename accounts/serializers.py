@@ -11,7 +11,10 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ('email', 'username', 'password', 'phone_number', 'profile_picture', 'timezone')
 
     def create(self, validated_data):
-        profile_picture = validated_data.get('profile_picture', settings.DEFAULT_PROFILE_PICTURE_URL)
+        profile_picture = validated_data.pop('profile_picture', None)  # Remove profile_picture from validated_data
+        if not profile_picture:  # Use default only if no profile picture is provided
+            profile_picture = settings.DEFAULT_PROFILE_PICTURE_URL
+
         user = CustomUser.objects.create_user(
             email=validated_data['email'],
             username=validated_data['username'],
@@ -21,7 +24,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             phone_number=validated_data.get('phone_number', '')
         )
         send_email_confirmation(self.context['request'], user)
-        print( f"User {user.email} has been created, and email confirmation sent")
+        print(f"User {user.email} has been created, and email confirmation sent")
         return user
 
 
@@ -45,10 +48,14 @@ class UserEmailSerializer(serializers.ModelSerializer):
         fields = ['email']
 
 
+# =========================================== Update Profile Picture ===========================================
 
+class UpdateProfilePictureSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ['profile_picture']
 
-
-
+# ===============================================================================================================
 
 
 
