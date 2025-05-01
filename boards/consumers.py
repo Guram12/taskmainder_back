@@ -23,7 +23,7 @@ class BoardConsumer(AsyncWebsocketConsumer):
         board = await sync_to_async(Board.objects.get)(id=self.board_id)
         board_data = await sync_to_async(lambda: BoardSerializer(board).data)()
 
-        print('Sending full board state:::', board_data)
+        # print('Sending full board state:::', board_data)
         await self.send(text_data=json.dumps({
             'action': 'full_board_state',
             'payload': board_data,
@@ -52,6 +52,8 @@ class BoardConsumer(AsyncWebsocketConsumer):
             await self.add_list(payload)
         elif action == 'add_task':
             await self.add_task(payload)
+        elif action == "delete_task":
+            await self.task_delete(payload)
 
 
     async def add_task(self, payload):
@@ -87,6 +89,30 @@ class BoardConsumer(AsyncWebsocketConsumer):
             )
         except List.DoesNotExist:
             print('List does not exist:', list_id)
+
+    async def task_delete(self, payload):
+        task_id = payload['task_id']
+        print('Deleting task:', task_id)
+
+        try:
+            task = await Task.objects.aget(id=task_id)
+            list_id = task.list_id 
+            await task.adelete()
+
+            # Notify all clients in the board group about the deleted task
+            await self.channel_layer.group_send(
+                self.board_group_name,
+                {
+                    'type': 'board_message',
+                    'action': 'delete_task',
+                    'payload': {
+                        'task_id': task_id,
+                        'list_id': list_id,
+                    }
+                }
+            )
+        except Task.DoesNotExist:
+            print('Task does not exist:', task_id)
 
 
     async def move_task(self, payload):
