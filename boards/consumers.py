@@ -1,9 +1,10 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
-from .models import Task, Board, BoardMembership
+from .models import Task, Board, BoardMembership, List
 from accounts.models import CustomUser
 from asgiref.sync import sync_to_async
+from .serializers import BoardSerializer
 
 class BoardConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -16,6 +17,17 @@ class BoardConsumer(AsyncWebsocketConsumer):
         )
 
         await self.accept()
+
+        # when user connects, send the full board state
+        # This is a placeholder for the actual logic to fetch the board state
+        board = await sync_to_async(Board.objects.get)(id=self.board_id)
+        board_data = await sync_to_async(lambda: BoardSerializer(board).data)()
+
+        print('Sending full board state:::', board_data)
+        await self.send(text_data=json.dumps({
+            'action': 'full_board_state',
+            'payload': board_data,
+        }))
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(
@@ -38,6 +50,43 @@ class BoardConsumer(AsyncWebsocketConsumer):
             await self.delete_user_from_board(payload)
         elif action == 'add_list':
             await self.add_list(payload)
+        elif action == 'add_task':
+            await self.add_task(payload)
+
+
+    async def add_task(self, payload):
+        task_title = payload['title']
+        list_id = payload['list']
+        print('Adding task:', task_title, list_id)
+        try:
+            # Fetch the list to which the task will be added
+            task_list = await sync_to_async(List.objects.get)(id=list_id)
+            # Create the new task
+            new_task = await sync_to_async(task_list.tasks.create)(
+                title=task_title,
+                description=payload.get('description', ''),
+                due_date=payload.get('due_date', None)
+            )
+
+            # Notify all clients in the board group about the new task
+            await self.channel_layer.group_send(
+                self.board_group_name,
+                {
+                    'type': 'board_message',
+                    'action': 'add_task',
+                    'payload': {
+                        'id': new_task.id,
+                        'title': new_task.title,
+                        'description': new_task.description,
+                        'list': list_id,
+                        'created_at': new_task.created_at.isoformat(),
+                        'due_date': new_task.due_date.isoformat() if new_task.due_date else None,
+                        'completed': new_task.completed,
+                    }
+                }
+            )
+        except List.DoesNotExist:
+            print('List does not exist:', list_id)
 
 
     async def move_task(self, payload):
