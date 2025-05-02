@@ -5,6 +5,8 @@ from .models import Task, Board, BoardMembership, List
 from accounts.models import CustomUser
 from asgiref.sync import sync_to_async
 from .serializers import BoardSerializer
+from datetime import datetime
+
 
 class BoardConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -54,6 +56,8 @@ class BoardConsumer(AsyncWebsocketConsumer):
             await self.add_task(payload)
         elif action == "delete_task":
             await self.task_delete(payload)
+        elif action == 'update_task':
+            await self.update_task(payload)
 
 
     async def add_task(self, payload):
@@ -89,6 +93,59 @@ class BoardConsumer(AsyncWebsocketConsumer):
             )
         except List.DoesNotExist:
             print('List does not exist:', list_id)
+
+
+    async def update_task(self, payload):
+        task_id = payload['task_id']
+        updated_title = payload.get('title', None)
+        updated_due_date = payload.get('due_date', None)
+        updated_description = payload.get('description', None)
+        completed = payload.get('completed', None)
+        print('Updating task:', task_id, updated_title, updated_due_date, updated_description, completed)
+
+        try:
+            # Fetch the task to be updated
+            task = await Task.objects.aget(id=task_id)
+
+            # Update the task fields if provided
+            if updated_title is not None:
+                task.title = updated_title
+            if updated_description is not None:
+                task.description = updated_description
+            if updated_due_date is not None:
+                # Convert due_date to a datetime object if it's not None
+                if isinstance(updated_due_date, str) and updated_due_date.strip():
+                    try:
+                        updated_due_date = datetime.fromisoformat(updated_due_date)
+                    except ValueError:
+                        print(f"Invalid due_date format: {updated_due_date}")
+                        updated_due_date = None
+                task.due_date = updated_due_date
+            if completed is not None:
+                task.completed = completed
+
+            # Save the updated task
+            await task.asave()
+
+            # Notify all clients in the board group about the updated task
+            await self.channel_layer.group_send(
+                self.board_group_name,
+                {
+                    'type': 'board_message',
+                    'action': 'update_task',
+                    'payload': {
+                        'id': task.id,
+                        'title': task.title,
+                        'description': task.description,
+                        'list': task.list_id,
+                        'created_at': task.created_at.isoformat(),
+                        'due_date': task.due_date.isoformat() if task.due_date else None,
+                        'completed': task.completed,
+                    }
+                }
+            )
+        except Task.DoesNotExist:
+            print('Task does not exist:', task_id)
 
     async def task_delete(self, payload):
         task_id = payload['task_id']
