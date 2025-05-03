@@ -37,14 +37,15 @@ class BoardMembership(models.Model):
     
 
 class List(models.Model):
-  name= models.CharField(max_length=255)
-  board = models.ForeignKey(Board, related_name='lists', on_delete=models.CASCADE)
-  created_at = models.DateTimeField(auto_now_add=True)
+    name= models.CharField(max_length=255)
+    board = models.ForeignKey(Board, related_name='lists', on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
 
-  def __str__(self):
-    return self.name
+    def __str__(self):
+        return self.name
   
-
+    def get_sorted_tasks(self):
+        return self.tasks.order_by('order') 
 
 class Task(models.Model):
     title = models.CharField(max_length=255)
@@ -53,8 +54,10 @@ class Task(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     due_date = models.DateTimeField(blank=True, null=True)
     completed = models.BooleanField(default=False)
+    order = models.IntegerField(default=0) 
 
-
+    class Meta:
+        ordering = ['order'] 
 
     def __str__(self):
         return self.title

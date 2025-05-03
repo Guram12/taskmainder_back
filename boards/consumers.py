@@ -6,7 +6,7 @@ from accounts.models import CustomUser
 from asgiref.sync import sync_to_async
 from .serializers import BoardSerializer
 from datetime import datetime
-
+from django.db import models
 
 class BoardConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -58,6 +58,8 @@ class BoardConsumer(AsyncWebsocketConsumer):
             await self.task_delete(payload)
         elif action == 'update_task':
             await self.update_task(payload)
+        elif action == 'reorder_task':
+            await self.reorder_task(payload)
 
 
     async def add_task(self, payload):
@@ -179,9 +181,17 @@ class BoardConsumer(AsyncWebsocketConsumer):
 
         try:
             task = await Task.objects.aget(id=task_id)
+
+            # Fetch the highest order number in the target list
+            max_order = await sync_to_async(lambda: Task.objects.filter(list_id=target_list_id).aggregate(max_order=models.Max('order'))['max_order'])()
+            new_order = (max_order or 0) + 1  # If no tasks exist, start with order 1
+
+            # Update the task's list and order
             task.list_id = target_list_id
+            task.order = new_order
             await task.asave()
 
+            # Notify all clients in the board group about the moved task
             await self.channel_layer.group_send(
                 self.board_group_name,
                 {
@@ -190,12 +200,45 @@ class BoardConsumer(AsyncWebsocketConsumer):
                     'payload': {
                         'task_id': task_id,
                         'source_list_id': source_list_id,
-                        'target_list_id': target_list_id
+                        'target_list_id': target_list_id,
+                        'new_order': new_order
                     }
                 }
             )
         except Task.DoesNotExist:
             print('Task does not exist:', task_id)
+
+    async def reorder_task(self, payload):
+        list_id = payload['list_id']
+        task_order = payload['task_order']
+        print(f"Reordering tasks in list {list_id}: {task_order}")
+
+        try:
+            task_list = await sync_to_async(List.objects.get)(id=list_id)
+            tasks = await sync_to_async(list)(task_list.tasks.all())
+
+            # Update the order of tasks
+            for index, task_id in enumerate(task_order):
+                task = next((t for t in tasks if t.id == task_id), None)
+                if task:
+                    task.order = index
+                    await sync_to_async(task.save)()
+
+            # Notify all clients about the updated order
+            print(f"Reordering tasks in list {list_id}: {task_order}")
+            await self.channel_layer.group_send(
+                self.board_group_name,
+                {
+                    'type': 'board_message',
+                    'action': 'reorder_task',
+                    'payload': {'list_id': list_id, 'task_order': task_order},
+                }
+            )
+        except List.DoesNotExist:
+            print(f"List {list_id} does not exist.")
+
+
+
 
     async def add_list(self, payload):
         list_name = payload['name']
