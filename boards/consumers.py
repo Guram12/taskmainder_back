@@ -52,6 +52,10 @@ class BoardConsumer(AsyncWebsocketConsumer):
             await self.delete_user_from_board(payload)
         elif action == 'add_list':
             await self.add_list(payload)
+        elif action == 'delete_list':
+            await self.delete_list(payload)
+        elif action == 'edit_list_name':
+            await self.edit_list_name(payload)
         elif action == 'add_task':
             await self.add_task(payload)
         elif action == "delete_task":
@@ -61,6 +65,8 @@ class BoardConsumer(AsyncWebsocketConsumer):
         elif action == 'reorder_task':
             await self.reorder_task(payload)
 
+
+# =============================================  Task Methods =============================================
 
     async def add_task(self, payload):
         task_title = payload['title']
@@ -238,6 +244,7 @@ class BoardConsumer(AsyncWebsocketConsumer):
             print(f"List {list_id} does not exist.")
 
 
+# =============================================  List Methods =============================================
 
 
     async def add_list(self, payload):
@@ -266,6 +273,59 @@ class BoardConsumer(AsyncWebsocketConsumer):
             print('Board does not exist:', board_id)
 
 
+    async def edit_list_name(self, payload):
+        list_id = payload['list_id']
+        new_name = payload['new_name']
+        print('Editing list name:', list_id, new_name)
+
+        try:
+            task_list = await List.objects.aget(id=list_id)
+
+            task_list.name = new_name
+            await task_list.asave()
+
+            await self.channel_layer.group_send(
+                self.board_group_name,
+                {
+                    'type': 'board_message',
+                    'action': 'edit_list_name',
+                    'payload': {
+                        'list_id': list_id,
+                        'new_name': new_name,
+                    }
+                }
+            )
+        except List.DoesNotExist:
+            print('List does not exist:', list_id)
+
+
+    async def delete_list(self, payload):
+        list_id = payload['list_id']
+        print('Deleting list:', list_id)
+
+        try:
+            # Fetch the list to be deleted
+            task_list = await List.objects.aget(id=list_id)
+
+            # Delete the list and its associated tasks
+            await task_list.adelete()
+
+            # Notify all clients in the board group about the deleted list
+            await self.channel_layer.group_send(
+                self.board_group_name,
+                {
+                    'type': 'board_message',
+                    'action': 'delete_list',
+                    'payload': {
+                        'list_id': list_id,
+                    }
+                }
+            )
+        except List.DoesNotExist:
+            print('List does not exist:', list_id)
+
+
+# =============================================  User Methods =============================================
 
     async def set_status(self, payload):
         user_id = payload['user_id']
@@ -292,6 +352,7 @@ class BoardConsumer(AsyncWebsocketConsumer):
             print('User does not exist:', user_id)
         except BoardMembership.DoesNotExist:
             print('Membership does not exist:', user_id, self.board_id)
+
 
     async def add_user(self, payload):
         emails = payload['emails']
