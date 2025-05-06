@@ -7,6 +7,12 @@ from asgiref.sync import sync_to_async
 from .serializers import BoardSerializer
 from datetime import datetime
 from django.db import models
+from .utils import convert_to_utc
+
+
+
+
+
 
 class BoardConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -112,6 +118,7 @@ class BoardConsumer(AsyncWebsocketConsumer):
         updated_due_date = payload.get('due_date', None)
         updated_description = payload.get('description', None)
         completed = payload.get('completed', None)
+        user_timezone = payload.get('user_timezone', 'UTC')  # Get user's timezone from payload
         print('Updating task:', task_id, updated_title, updated_due_date, updated_description, completed)
 
         try:
@@ -124,14 +131,14 @@ class BoardConsumer(AsyncWebsocketConsumer):
             if updated_description is not None:
                 task.description = updated_description
             if updated_due_date is not None:
-                # Convert due_date to a datetime object if it's not None
+                # Convert due_date to UTC using the utility function
                 if isinstance(updated_due_date, str) and updated_due_date.strip():
                     try:
-                        updated_due_date = datetime.fromisoformat(updated_due_date)
-                    except ValueError:
-                        print(f"Invalid due_date format: {updated_due_date}")
-                        updated_due_date = None
-                task.due_date = updated_due_date
+                        updated_due_date_utc = convert_to_utc(updated_due_date, user_timezone)
+                        task.due_date = updated_due_date_utc
+                    except Exception as e:
+                        print(f"Error converting due_date: {e}")
+                        updated_due_date_utc = None
             if completed is not None:
                 task.completed = completed
 
@@ -157,6 +164,7 @@ class BoardConsumer(AsyncWebsocketConsumer):
             )
         except Task.DoesNotExist:
             print('Task does not exist:', task_id)
+            
 
     async def task_delete(self, payload):
         task_id = payload['task_id']
