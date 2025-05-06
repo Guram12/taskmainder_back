@@ -64,8 +64,11 @@ class BoardConsumer(AsyncWebsocketConsumer):
             await self.update_task(payload)
         elif action == 'reorder_task':
             await self.reorder_task(payload)
-
-
+            
+        elif action == 'update_board_name': 
+            await self.update_board_name(payload)
+        elif action == 'delete_board':
+            await self.delete_board(payload)
 # =============================================  Task Methods =============================================
 
     async def add_task(self, payload):
@@ -323,6 +326,74 @@ class BoardConsumer(AsyncWebsocketConsumer):
             )
         except List.DoesNotExist:
             print('List does not exist:', list_id)
+
+# =============================================  Board Methods =============================================
+
+    async def update_board_name(self, payload):
+        board_id = payload['board_id']
+        new_name = payload['new_name']
+        print('Updating board name:', board_id, new_name)
+
+        try:
+            board = await Board.objects.aget(id=board_id)
+
+            board.name = new_name
+            await board.asave()
+
+            # Notify all clients in the board group about the updated board name
+            await self.channel_layer.group_send(
+                self.board_group_name,
+                {
+                    'type': 'board_message',
+                    'action': 'update_board_name',
+                    'payload': {
+                        'board_id': board_id,
+                        'new_name': new_name,
+                    }
+                }
+            )
+        except Board.DoesNotExist:
+            print('Board does not exist:', board_id)
+
+
+    async def delete_board(self, payload):
+        board_id = payload['board_id']
+        user_id = payload['user_id']
+        print('Deleting board:', board_id)
+
+        if not await self.is_owner():
+            print('user ownership:', self.scope['user'])
+            print('Permission denied: Only the owner can delete the board.')
+            return
+        if  self.scope['user'].id != user_id:
+            print('Permission denied: Only the owner can delete the board.')
+            return
+        try:
+            # Fetch the board to be deleted
+            board = await Board.objects.aget(id=board_id)
+            # Delete the board and its associated lists and tasks
+            await board.adelete()
+            # Notify all clients in the board group about the deleted board
+            await self.channel_layer.group_send(
+                self.board_group_name,
+                {
+                    'type': 'board_message',
+                    'action': 'delete_board',
+                    'payload': {
+                        'board_id': board_id,
+                    }
+                }
+            )
+        except Board.DoesNotExist:
+            print('Board does not exist:', board_id)
+        except BoardMembership.DoesNotExist:
+            print('Board membership does not exist:', board_id, self.scope['user'].id)
+        except Exception as e:
+            print('Error deleting board:', e)
+            await self.send(text_data=json.dumps({
+                'action': 'error',
+                'message': str(e),
+            }))
 
 
 # =============================================  User Methods =============================================
