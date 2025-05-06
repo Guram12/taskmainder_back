@@ -115,30 +115,34 @@ class BoardConsumer(AsyncWebsocketConsumer):
     async def update_task(self, payload):
         task_id = payload['task_id']
         updated_title = payload.get('title', None)
-        updated_due_date = payload.get('due_date', None)
+        updated_due_date = payload.get('due_date', None)  # Can be null or empty
         updated_description = payload.get('description', None)
         completed = payload.get('completed', None)
         user_timezone = payload.get('user_timezone', 'UTC')  # Get user's timezone from payload
         print('Updating task:', task_id, updated_title, updated_due_date, updated_description, completed)
 
         try:
-            # Fetch the task to be updated
             task = await Task.objects.aget(id=task_id)
 
-            # Update the task fields if provided
             if updated_title is not None:
                 task.title = updated_title
             if updated_description is not None:
                 task.description = updated_description
             if updated_due_date is not None:
-                # Convert due_date to UTC using the utility function
-                if isinstance(updated_due_date, str) and updated_due_date.strip():
+                if updated_due_date.strip():  # If not empty
                     try:
                         updated_due_date_utc = convert_to_utc(updated_due_date, user_timezone)
                         task.due_date = updated_due_date_utc
                     except Exception as e:
                         print(f"Error converting due_date: {e}")
                         updated_due_date_utc = None
+                else:
+                    # If empty string, set due_date to None
+                    task.due_date = None
+            else:
+                # If due_date is explicitly null, set it to None
+                task.due_date = None
+
             if completed is not None:
                 task.completed = completed
 
