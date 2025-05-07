@@ -55,6 +55,10 @@ class Task(models.Model):
     due_date = models.DateTimeField(blank=True, null=True)
     completed = models.BooleanField(default=False)
     order = models.IntegerField(default=0) 
+    task_associated_users_id = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='associated_tasks', blank=True)
+
+
+
 
     class Meta:
         ordering = ['order'] 

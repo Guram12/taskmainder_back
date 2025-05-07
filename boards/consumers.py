@@ -119,6 +119,8 @@ class BoardConsumer(AsyncWebsocketConsumer):
         updated_description = payload.get('description', None)
         completed = payload.get('completed', None)
         user_timezone = payload.get('user_timezone', 'UTC')  # Get user's timezone from payload
+        task_associated_users_id = payload.get('task_associated_users_id', [])
+
         print('Updating task:', task_id, updated_title, updated_due_date, updated_description, completed)
 
         try:
@@ -146,6 +148,21 @@ class BoardConsumer(AsyncWebsocketConsumer):
             if completed is not None:
                 task.completed = completed
 
+
+            if task_associated_users_id is not None:
+                # Clear existing associations
+                await sync_to_async(task.task_associated_users_id.clear)()
+                # Add new associations
+                for user_id in task_associated_users_id:
+                    try:
+                        # Fetch the user instance
+                        user = await CustomUser.objects.aget(id=user_id)  # Ensure this is awaited
+                        # Add the user to the task
+                        await sync_to_async(task.task_associated_users_id.add)(user)
+                        print(f'User {user_id} associated to current task!')
+                    except CustomUser.DoesNotExist:
+                        print('User does not exist:', user_id)
+                        
             # Save the updated task
             await task.asave()
 
@@ -163,6 +180,9 @@ class BoardConsumer(AsyncWebsocketConsumer):
                         'created_at': task.created_at.isoformat(),
                         'due_date': task.due_date.isoformat() if task.due_date else None,
                         'completed': task.completed,
+                        'task_associated_users_id': [
+                            user.id for user in await sync_to_async(list)(task.task_associated_users_id.all())
+                        ]
                     }
                 }
             )
