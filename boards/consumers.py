@@ -7,6 +7,12 @@ from asgiref.sync import sync_to_async
 from .serializers import BoardSerializer
 from datetime import datetime
 from django.db import models
+from .utils import convert_to_utc
+
+
+
+
+
 
 class BoardConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -109,32 +115,54 @@ class BoardConsumer(AsyncWebsocketConsumer):
     async def update_task(self, payload):
         task_id = payload['task_id']
         updated_title = payload.get('title', None)
-        updated_due_date = payload.get('due_date', None)
+        updated_due_date = payload.get('due_date', None)  # Can be null or empty
         updated_description = payload.get('description', None)
         completed = payload.get('completed', None)
+        user_timezone = payload.get('user_timezone', 'UTC')  # Get user's timezone from payload
+        task_associated_users_id = payload.get('task_associated_users_id', [])
+
         print('Updating task:', task_id, updated_title, updated_due_date, updated_description, completed)
 
         try:
-            # Fetch the task to be updated
             task = await Task.objects.aget(id=task_id)
 
-            # Update the task fields if provided
             if updated_title is not None:
                 task.title = updated_title
             if updated_description is not None:
                 task.description = updated_description
             if updated_due_date is not None:
-                # Convert due_date to a datetime object if it's not None
-                if isinstance(updated_due_date, str) and updated_due_date.strip():
+                if updated_due_date.strip():  # If not empty
                     try:
-                        updated_due_date = datetime.fromisoformat(updated_due_date)
-                    except ValueError:
-                        print(f"Invalid due_date format: {updated_due_date}")
-                        updated_due_date = None
-                task.due_date = updated_due_date
+                        updated_due_date_utc = convert_to_utc(updated_due_date, user_timezone)
+                        task.due_date = updated_due_date_utc
+                    except Exception as e:
+                        print(f"Error converting due_date: {e}")
+                        updated_due_date_utc = None
+                else:
+                    # If empty string, set due_date to None
+                    task.due_date = None
+            else:
+                # If due_date is explicitly null, set it to None
+                task.due_date = None
+
             if completed is not None:
                 task.completed = completed
 
+
+            if task_associated_users_id is not None:
+                # Clear existing associations
+                await sync_to_async(task.task_associated_users_id.clear)()
+                # Add new associations
+                for user_id in task_associated_users_id:
+                    try:
+                        # Fetch the user instance
+                        user = await CustomUser.objects.aget(id=user_id)  # Ensure this is awaited
+                        # Add the user to the task
+                        await sync_to_async(task.task_associated_users_id.add)(user)
+                        print(f'User {user_id} associated to current task!')
+                    except CustomUser.DoesNotExist:
+                        print('User does not exist:', user_id)
+                        
             # Save the updated task
             await task.asave()
 
@@ -152,11 +180,15 @@ class BoardConsumer(AsyncWebsocketConsumer):
                         'created_at': task.created_at.isoformat(),
                         'due_date': task.due_date.isoformat() if task.due_date else None,
                         'completed': task.completed,
+                        'task_associated_users_id': [
+                            user.id for user in await sync_to_async(list)(task.task_associated_users_id.all())
+                        ]
                     }
                 }
             )
         except Task.DoesNotExist:
             print('Task does not exist:', task_id)
+            
 
     async def task_delete(self, payload):
         task_id = payload['task_id']
