@@ -13,7 +13,7 @@ Before you begin, ensure the following are installed on your system:
 ## 2. Project Structure
 Your project should have the following structure:
 
-
+```
 task_management_app/
 ├── task_back/
 │   ├── taskmainder/
@@ -22,7 +22,7 @@ task_management_app/
 │   │   ├── requirements.txt
 │   │   ├── DOCKER_SETUP.md
 │   │   ├── ...
-
+```
 
 ## 3. Docker Configuration
 The Dockerfile defines how to build the Docker image for the Django application. It:
