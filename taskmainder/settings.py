@@ -62,6 +62,9 @@ INSTALLED_APPS = [
     'requests',
     'channels',
 
+    'django_celery_beat',
+
+
 ]
 
 SITE_ID = 1
@@ -315,27 +318,30 @@ TEMPLATES = [
 
 
 
-# LOGGING = {
-#     'version': 1,
-#     'disable_existing_loggers': False,
-#     'handlers': {
-#         'console': {
-#             'level': 'DEBUG',
-#             'class': 'logging.StreamHandler',
-#         },
-#     },
-#     'loggers': {
-#         'django': {
-#             'handlers': ['console'],
-#             'level': 'DEBUG',
-#         },
-#         'allauth': {
-#             'handlers': ['console'],
-#             'level': 'DEBUG',
-#         },
-#     },
-# }
-
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        # 'django': {
+        #     'handlers': ['console'],
+        #     'level': 'DEBUG',
+        # },
+        'celery': {  # Add this logger for Celery
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+        'boards': {  # Add this logger for your app
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+    },
+}
 
 
 
@@ -352,13 +358,19 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [('127.0.0.1', 6379)],
+            "hosts": [('redis', 6379)],
         },
     },
 }
 
+# ===========================================    django celery settings    ========================================
 
 
+# CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Redis as the message broker
+CELERY_BROKER_URL = 'redis://redis:6379/0'  # when using docker
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
 
 
 

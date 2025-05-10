@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  django:
+    build:
+      context: .
+    container_name: django_app
+    command: daphne -b 0.0.0.0 -p 8000 taskmainder.asgi:application
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+
+  redis:
+    image: redis:6.2
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+  celery_worker:
+    build:
+      context: .
+    container_name: celery_worker
+    command: celery -A taskmainder worker --loglevel=info
+    depends_on:
+      - redis
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+
+  celery_beat:
+    build:
+      context: .
+    container_name: celery_beat
+    command: celery -A taskmainder beat --loglevel=info
+    depends_on:
+      - redis
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0

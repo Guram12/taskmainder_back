@@ -1,7 +1,8 @@
 from django.db import models
 from django.conf import settings
 
-
+from .tasks import send_task_due_email
+from django.utils.timezone import is_naive, make_aware
 
 
 class Board(models.Model):
@@ -65,4 +66,26 @@ class Task(models.Model):
 
     def __str__(self):
         return self.title
+    
+    def save(self, *args, **kwargs):
+        # Debug the due_date time zone
+        print(f"Original due_date: {self.due_date}")
+        if self.due_date and is_naive(self.due_date):
+            self.due_date = make_aware(self.due_date)
+        print(f"Converted due_date to UTC: {self.due_date}")
+
+        super().save(*args, **kwargs)
+
+        # Schedule email notifications for associated users
+        if self.due_date:
+            for user in self.task_associated_users_id.all():
+                print(f"Scheduling email for {user.email} at {self.due_date} (UTC)")
+                send_task_due_email.apply_async(
+                    args=[user.email, self.title, self.due_date.isoformat()],
+                    eta=self.due_date
+                )
+            super().save(*args, **kwargs)
+
+
+
 
