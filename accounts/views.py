@@ -188,9 +188,87 @@ class CustomConfirmEmailView(ConfirmEmailView):
             return redirect(f'{settings.FRONTEND_URL}') 
         
         
+# ============================================  password reset view =========================================
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_decode 
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_str
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
 
 
 
+
+from boards.sendemail import send_password_reset_email  # Import the new function
+
+class PasswordResetView(APIView):
+    """
+    View to handle sending password reset email using Brevo.
+    """
+    def post(self, request, *args, **kwargs):
+        email = request.data.get('email')
+        if not email:
+            return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = CustomUser.objects.get(email=email)
+            token = default_token_generator.make_token(user)
+            uid = urlsafe_base64_encode(force_str(user.pk).encode('utf-8'))
+
+            # Generate password reset link
+            reset_link = f"{settings.FRONTEND_URL}/password-reset-confirm/{uid}/{token}/"
+
+            # Use the new Brevo function to send the email
+            try:
+                send_password_reset_email(email, reset_link)
+                return Response({'message': 'Password reset link has been sent to your email.'}, status=status.HTTP_200_OK)
+            except Exception as e:
+                return Response({'error': f'Failed to send email: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        except CustomUser.DoesNotExist:
+            return Response({'error': 'User with this email does not exist.'}, status=status.HTTP_404_NOT_FOUND)
+
+# ========================================  password reset confirm view =========================================
+
+class PasswordResetConfirmView(APIView):
+    """
+    View to handle password reset confirmation.
+    """
+    def post(self, request, *args, **kwargs):
+        uid = kwargs.get('uidb64')
+        token = kwargs.get('token')
+        new_password = request.data.get('new_password')
+
+        if not uid or not token or not new_password:
+            return Response({'error': 'All fields are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Decode the uid
+            logger.info(f"Decoding uid: {uid}")
+            uid = force_str(urlsafe_base64_decode(uid))
+            logger.info(f"Decoded uid: {uid}")
+
+            # Fetch the user
+            user = CustomUser.objects.get(pk=uid)
+            logger.info(f"User found: {user.email}")
+
+            # Validate the token
+            if not default_token_generator.check_token(user, token):
+                logger.warning(f"Invalid or expired token for user: {user.email}")
+                return Response({'error': 'Invalid or expired token.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Set the new password
+            user.set_password(new_password)
+            user.save()
+            logger.info(f"Password reset successfully for user: {user.email}")
+
+            return Response({'message': 'Password has been reset successfully.'}, status=status.HTTP_200_OK)
+        except CustomUser.DoesNotExist:
+            logger.error(f"User does not exist for uid: {uid}")
+            return Response({'error': 'Invalid user.'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Unexpected error: {str(e)}")
+            return Response({'error': 'An unexpected error occurred.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 # =========================================== Update Profile Picture View ===========================================
 
 
