@@ -7,13 +7,14 @@ from logging import getLogger
 logger = getLogger(__name__)
 
 @shared_task
-def send_task_due_email(email, task_name, due_date):
+def send_task_due_email(email, username, task_name, due_date):
     logger.debug(f"DEBUG: Celery task triggered")
     logger.info(f"Email: {email}")
+    logger.info(f"Username: {username}")
     logger.info(f"Task name: {task_name}")
     logger.info(f"Due date: {due_date}")
     try:
-        send_due_date_email_to_user(email, task_name, due_date)
+        send_due_date_email_to_user(email, username, task_name, due_date)
     except Exception as e:
         print(f"ERROR sending email: {e}")
 

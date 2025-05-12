@@ -4,10 +4,9 @@ from sib_api_v3_sdk.rest import ApiException
 from decouple import config
 from logging import getLogger
 
-
 logger = getLogger(__name__)
 
-def send_due_date_email_to_user(email, task_name, due_date):
+def send_due_date_email_to_user(email, username, task_name, due_date):
     """
     Sends an email using Brevo with task due information.
     """
@@ -26,6 +25,7 @@ def send_due_date_email_to_user(email, task_name, due_date):
         to=[{"email": f"{email}"}],
         template_id=2,
         params={
+            "username": username,  
             "task_name": task_name,
             "due_date": due_date,
             'email': email,
@@ -43,8 +43,8 @@ def send_due_date_email_to_user(email, task_name, due_date):
         logger.error(f"Error sending email: {e}")
 
 
-# from boards.sendemail import send_test_email_with_brevo
-# send_test_email_with_brevo('guramshanidze44@gmail.com', 'Test -3- Task', '2025-05-09T12:30:00+00:00')
+# from boards.sendemail import send_due_date_email_to_user
+# send_due_date_email_to_user('guramshanidze44@gmail.com', 'Test -3- Task', '2025-05-09T12:30:00+00:00')
 
 
 # -----------------------------
@@ -54,7 +54,7 @@ def send_due_date_email_to_user(email, task_name, due_date):
 
 
 
-# ===========================================  password reset emaail sending ===========================================
+# ===========================================  password reset email sending ===========================================
 
 
 def send_password_reset_email(email, reset_link):
