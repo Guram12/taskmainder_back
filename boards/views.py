@@ -72,6 +72,32 @@ class BoardViewSet(viewsets.ModelViewSet):
         return Response(users, status=status.HTTP_200_OK)
 
 
+# ================================== list viewset ==================================
+
+class ListViewSet(viewsets.ModelViewSet):
+    queryset = List.objects.all()
+    permission_classes = [IsAuthenticated]
+    serializer_class = ListSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        return List.objects.filter(
+            models.Q(board__boardmembership__user=user)
+        )
+
+# ================================== task viewset ==================================
+
+class TaskViewSet(viewsets.ModelViewSet):
+    queryset = Task.objects.all()
+    permission_classes = [IsAuthenticated]
+    serializer_class = TaskSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        return Task.objects.filter(
+            models.Q(list__board__boardmembership__user=user)
+        )
+
 
 
 # =============================== add user to board =================================

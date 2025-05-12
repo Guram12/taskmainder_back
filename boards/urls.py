@@ -1,9 +1,12 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import BoardViewSet , delete_user_from_board, get_board_users
+from .views import BoardViewSet, ListViewSet, TaskViewSet , delete_user_from_board, get_board_users
 
 router = DefaultRouter()
 router.register(r'boards', BoardViewSet)
+router.register(r'lists', ListViewSet)
+router.register(r'tasks', TaskViewSet)
+
 
 
 urlpatterns = [
