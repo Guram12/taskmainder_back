@@ -105,6 +105,7 @@ class BoardConsumer(AsyncWebsocketConsumer):
                         'created_at': new_task.created_at.isoformat(),
                         'due_date': new_task.due_date.isoformat() if new_task.due_date else None,
                         'completed': new_task.completed,
+
                     }
                 }
             )
@@ -120,8 +121,10 @@ class BoardConsumer(AsyncWebsocketConsumer):
         completed = payload.get('completed', None)
         user_timezone = payload.get('user_timezone', 'UTC')  # Get user's timezone from payload
         task_associated_users_id = payload.get('task_associated_users_id', [])
+        priority = payload.get('priority', None)
 
-        print('Updating task:', task_id, updated_title, updated_due_date, updated_description, completed)
+
+        print('Updating task:', task_id, updated_title, updated_due_date, updated_description, completed, priority)
 
         try:
             task = await Task.objects.aget(id=task_id)
@@ -147,7 +150,8 @@ class BoardConsumer(AsyncWebsocketConsumer):
 
             if completed is not None:
                 task.completed = completed
-
+            if priority is not None:
+                task.priority = priority
 
             if task_associated_users_id is not None:
                 # Clear existing associations
@@ -182,7 +186,8 @@ class BoardConsumer(AsyncWebsocketConsumer):
                         'completed': task.completed,
                         'task_associated_users_id': [
                             user.id for user in await sync_to_async(list)(task.task_associated_users_id.all())
-                        ]
+                        ],
+                        "priority": task.priority,
                     }
                 }
             )

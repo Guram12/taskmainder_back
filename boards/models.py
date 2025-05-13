@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.utils.timezone import now
 
 from .tasks import send_task_due_email
 from django.utils.timezone import is_naive, make_aware
@@ -58,6 +59,12 @@ class Task(models.Model):
     order = models.IntegerField(default=0) 
     task_associated_users_id = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='associated_tasks', blank=True)
 
+    PRIORITY_CHOICES = [
+        ('green', 'Green'),
+        ('orange', 'Orange'),
+        ('red', 'Red'),
+    ]
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, blank=True, null=True, default=None)  # New field
 
 
 
@@ -68,24 +75,35 @@ class Task(models.Model):
         return self.title
     
     def save(self, *args, **kwargs):
-        # Debug the due_date time zone
-        print(f"Original due_date: {self.due_date}")
-        if self.due_date and is_naive(self.due_date):
-            self.due_date = make_aware(self.due_date)
-        print(f"Converted due_date to UTC: {self.due_date}")
+        if self.pk:  # If the task already exists
+            original_task = Task.objects.filter(pk=self.pk).first()
+            if original_task:
+                # Skip email scheduling if the parent list has changed
+                if original_task.list != self.list:
+                    print(f"Task moved from list '{original_task.list}' to list '{self.list}'. Skipping email scheduling.")
+                    super().save(*args, **kwargs)
+                    return
 
-        super().save(*args, **kwargs)
-
-        # Schedule email notifications for associated users
-        if self.due_date:
+                # Only schedule emails if the due_date has changed
+                if original_task.due_date != self.due_date:
+                    if self.due_date and is_naive(self.due_date):
+                        self.due_date = make_aware(self.due_date)
+                    if self.due_date and self.due_date > now():
+                        for user in self.task_associated_users_id.all():
+                            print(f"Scheduling email for {user.email} at {self.due_date} (UTC)")
+                            send_task_due_email.apply_async(
+                                args=[user.email, user.username, self.title, self.due_date.isoformat()],
+                                eta=self.due_date
+                            )
+        elif self.due_date and self.due_date > now():  # For new tasks with a future due date
+            if is_naive(self.due_date):
+                self.due_date = make_aware(self.due_date)
             for user in self.task_associated_users_id.all():
                 print(f"Scheduling email for {user.email} at {self.due_date} (UTC)")
                 send_task_due_email.apply_async(
                     args=[user.email, user.username, self.title, self.due_date.isoformat()],
                     eta=self.due_date
                 )
-            super().save(*args, **kwargs)
 
-
-
+        super().save(*args, **kwargs)
 
