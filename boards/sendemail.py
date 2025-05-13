@@ -4,18 +4,18 @@ from sib_api_v3_sdk.rest import ApiException
 from decouple import config
 from logging import getLogger
 from datetime import datetime
-import pytz  # Import pytz for timezone conversion
+import pytz  
 
 
 
 logger = getLogger(__name__)
 
 
-def send_due_date_email_to_user(email, username, task_name, due_date, user_timezone):
+def send_due_date_email_to_user(email, username, task_name, due_date, user_timezone, priority):
     """
     Sends an email using Brevo with task due information.
     """
-    logger.info(f"Preparing to send email to {email} for task '{task_name}' due on {due_date}")
+    logger.info(f"Preparing to send email to {email} for task '{task_name}' due on {due_date} with priority {priority}")
 
     try:
         # Parse the due_date from ISO format
@@ -37,6 +37,16 @@ def send_due_date_email_to_user(email, username, task_name, due_date, user_timez
         logger.error(f"Error converting due_date to user's timezone: {e}")
         formatted_due_date = due_date  # Fallback to the original format
 
+    # send formated priority 
+    if priority == 'green':
+        updated_priority = 'Low'
+    elif priority == 'orange':
+        updated_priority = 'Medium'
+    elif priority == 'red':
+        updated_priority = 'High'
+    else:
+        updated_priority = 'no'
+
     configuration = sib_api_v3_sdk.Configuration()
     configuration.api_key['api-key'] = config('BREVO_API_KEY')
 
@@ -51,6 +61,7 @@ def send_due_date_email_to_user(email, username, task_name, due_date, user_timez
         params={
             "username": username,
             "task_name": task_name,
+            "priority": updated_priority,
             "due_date": formatted_due_date,  # Use the formatted date
             "email": email,
         },
@@ -60,7 +71,7 @@ def send_due_date_email_to_user(email, username, task_name, due_date, user_timez
     try:
         # Send the email
         response = api_instance.send_transac_email(send_smtp_email)
-        logger.info(f"Email sent to {email} for task '{task_name}' due on {formatted_due_date}")
+        logger.info(f"Email sent to {email} for task '{task_name}' due on {formatted_due_date} with priority {priority}")
         logger.info(f"Brevo Response: {response}")
     except ApiException as e:
         logger.error(f"Error sending email: {e}")

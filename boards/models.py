@@ -92,7 +92,7 @@ class Task(models.Model):
                         for user in self.task_associated_users_id.all():
                             print(f"Scheduling email for {user.email} at {self.due_date} (UTC)")
                             send_task_due_email.apply_async(
-                                args=[user.email, user.username, self.title, self.due_date.isoformat()],
+                                args=[user.email, user.username, self.title, self.due_date.isoformat(), self.priority],
                                 eta=self.due_date
                             )
         elif self.due_date and self.due_date > now():  # For new tasks with a future due date
@@ -101,9 +101,8 @@ class Task(models.Model):
             for user in self.task_associated_users_id.all():
                 print(f"Scheduling email for {user.email} at {self.due_date} (UTC)")
                 send_task_due_email.apply_async(
-                    args=[user.email, user.username, self.title, self.due_date.isoformat()],
+                    args=[user.email, user.username, self.title, self.due_date.isoformat(), self.priority],
                     eta=self.due_date
                 )
 
         super().save(*args, **kwargs)
-

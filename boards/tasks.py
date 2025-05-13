@@ -7,12 +7,15 @@ logger = getLogger(__name__)
 1
 
 @shared_task
-def send_task_due_email(email, username, task_name, due_date):
+def send_task_due_email(email, username, task_name, due_date ,priority):
     logger.debug(f"DEBUG: Celery task triggered")
-    logger.info(f"Email: {email}")
-    logger.info(f"Username: {username}")
-    logger.info(f"Task name: {task_name}")
-    logger.info(f"Due date: {due_date}")
+    logger.info({
+        "email": email,
+        "username": username,
+        "task_name": task_name,
+        "due_date": due_date,
+        "priority": priority
+    })
     try:
         # Fetch the user's timezone from the database
         user = CustomUser.objects.filter(email=email).first()
@@ -23,7 +26,7 @@ def send_task_due_email(email, username, task_name, due_date):
             user_timezone = 'UTC'  # Fallback to UTC if no timezone is set
 
         # Pass the user's timezone to the email function
-        send_due_date_email_to_user(email, username, task_name, due_date, user_timezone)
+        send_due_date_email_to_user(email, username, task_name, due_date, user_timezone, priority)
     except Exception as e:
         logger.error(f"ERROR sending email: {e}")
 
