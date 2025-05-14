@@ -74,35 +74,36 @@ class Task(models.Model):
     def __str__(self):
         return self.title
     
+    # filepath: /home/guram/Desktop/task_management_app/task_back/taskmainder/boards/models.py
     def save(self, *args, **kwargs):
         if self.pk:  # If the task already exists
             original_task = Task.objects.filter(pk=self.pk).first()
             if original_task:
-                # Skip email scheduling if the parent list has changed
                 if original_task.list != self.list:
                     print(f"Task moved from list '{original_task.list}' to list '{self.list}'. Skipping email scheduling.")
                     super().save(*args, **kwargs)
                     return
 
-                # Only schedule emails if the due_date has changed
                 if original_task.due_date != self.due_date:
                     if self.due_date and is_naive(self.due_date):
                         self.due_date = make_aware(self.due_date)
                     if self.due_date and self.due_date > now():
+                        super().save(*args, **kwargs)
                         for user in self.task_associated_users_id.all():
                             print(f"Scheduling email for {user.email} at {self.due_date} (UTC)")
                             send_task_due_email.apply_async(
-                                args=[user.email, user.username, self.title, self.due_date.isoformat(), self.priority],
+                                args=[self.id, user.email, user.username, self.title, self.due_date.isoformat(), self.priority],
                                 eta=self.due_date
                             )
-        elif self.due_date and self.due_date > now():  # For new tasks with a future due date
-            if is_naive(self.due_date):
-                self.due_date = make_aware(self.due_date)
-            for user in self.task_associated_users_id.all():
-                print(f"Scheduling email for {user.email} at {self.due_date} (UTC)")
-                send_task_due_email.apply_async(
-                    args=[user.email, user.username, self.title, self.due_date.isoformat(), self.priority],
-                    eta=self.due_date
-                )
-
-        super().save(*args, **kwargs)
+        else:
+            if self.due_date and self.due_date > now():
+                if is_naive(self.due_date):
+                    self.due_date = make_aware(self.due_date)
+            super().save(*args, **kwargs)
+            if self.due_date and self.due_date > now() and self.task_associated_users_id.exists():
+                for user in self.task_associated_users_id.all():
+                    print(f"Scheduling email for {user.email} at {self.due_date} (UTC)")
+                    send_task_due_email.apply_async(
+                        args=[self.id, user.email, user.username, self.title, self.due_date.isoformat(), self.priority],
+                        eta=self.due_date
+                    )
