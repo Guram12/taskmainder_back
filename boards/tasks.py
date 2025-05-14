@@ -3,13 +3,15 @@ from .sendemail import send_due_date_email_to_user
 from logging import getLogger
 from accounts.models import CustomUser
 
+
 logger = getLogger(__name__)
-1
+
 
 @shared_task
-def send_task_due_email(email, username, task_name, due_date ,priority):
+def send_task_due_email(task_id ,email, username, task_name, due_date ,priority):
     logger.debug(f"DEBUG: Celery task triggered")
     logger.info({
+        "task_id": task_id,
         "email": email,
         "username": username,
         "task_name": task_name,
@@ -17,6 +19,14 @@ def send_task_due_email(email, username, task_name, due_date ,priority):
         "priority": priority
     })
     try:
+        from .models import Task
+        
+        task_exists = Task.objects.filter(id=task_id).exists()
+        print(f"Task exists--------------->>>>>>>>>>: {task_exists}")
+        if not task_exists:
+            logger.info(f"Task with ID '{task_id}' no longer exists. Skipping email.")
+            return 
+
         # Fetch the user's timezone from the database
         user = CustomUser.objects.filter(email=email).first()
         if user and user.timezone:
@@ -29,8 +39,6 @@ def send_task_due_email(email, username, task_name, due_date ,priority):
         send_due_date_email_to_user(email, username, task_name, due_date, user_timezone, priority)
     except Exception as e:
         logger.error(f"ERROR sending email: {e}")
-
-
 
 # ====================================================================
 
