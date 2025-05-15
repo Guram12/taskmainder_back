@@ -112,15 +112,17 @@ class BoardConsumer(AsyncWebsocketConsumer):
         except List.DoesNotExist:
             print('List does not exist:', list_id)
 
+
     async def update_task(self, payload):
         task_id = payload['task_id']
         updated_title = payload.get('title', None)
-        updated_due_date = payload.get('due_date', None)
+        updated_due_date = payload.get('due_date', None)  # Can be null or empty
         updated_description = payload.get('description', None)
         completed = payload.get('completed', None)
-        user_timezone = payload.get('user_timezone', 'UTC')
+        user_timezone = payload.get('user_timezone', 'UTC')  # Get user's timezone from payload
         task_associated_users_id = payload.get('task_associated_users_id', [])
         priority = payload.get('priority', None)
+
 
         print('Updating task:', task_id, updated_title, updated_due_date, updated_description, completed, priority)
 
@@ -132,7 +134,7 @@ class BoardConsumer(AsyncWebsocketConsumer):
             if updated_description is not None:
                 task.description = updated_description
             if updated_due_date is not None:
-                if updated_due_date.strip():
+                if updated_due_date.strip():  # If not empty
                     try:
                         updated_due_date_utc = convert_to_utc(updated_due_date, user_timezone)
                         task.due_date = updated_due_date_utc
@@ -140,34 +142,35 @@ class BoardConsumer(AsyncWebsocketConsumer):
                         print(f"Error converting due_date: {e}")
                         updated_due_date_utc = None
                 else:
+                    # If empty string, set due_date to None
                     task.due_date = None
             else:
+                # If due_date is explicitly null, set it to None
                 task.due_date = None
 
             if completed is not None:
                 task.completed = completed
             if priority is not None:
-                if priority not in ['green', 'orange', 'red']:
-                    print(f"Invalid priority: {priority}")
-                    return
                 task.priority = priority
 
             if task_associated_users_id is not None:
+                # Clear existing associations
                 await sync_to_async(task.task_associated_users_id.clear)()
+                # Add new associations
                 for user_id in task_associated_users_id:
                     try:
-                        user = await CustomUser.objects.aget(id=user_id)
+                        # Fetch the user instance
+                        user = await CustomUser.objects.aget(id=user_id)  # Ensure this is awaited
+                        # Add the user to the task
                         await sync_to_async(task.task_associated_users_id.add)(user)
                         print(f'User {user_id} associated to current task!')
                     except CustomUser.DoesNotExist:
                         print('User does not exist:', user_id)
+                        
+            # Save the updated task
+            await task.asave()
 
-            try:
-                await task.asave()
-                print(f"Task with ID {task.id} updated successfully.")
-            except Exception as e:
-                print(f"Error saving task: {e}")
-
+            # Notify all clients in the board group about the updated task
             await self.channel_layer.group_send(
                 self.board_group_name,
                 {
