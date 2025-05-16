@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.db.models import Q
 from .models import CustomUser
-from .serializers import RegisterSerializer, UserProfileSerializer , UserEmailSerializer, UpdateProfilePictureSerializer
+from .serializers import RegisterSerializer, UserProfileSerializer , UserEmailSerializer, UpdateProfilePictureSerializer, UsernameANDPhoneNumberUpdateSerializer
 
 class RegisterView(generics.CreateAPIView):
     queryset = CustomUser.objects.all()
@@ -19,6 +19,13 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
     def get_object(self):
         return self.request.user
     
+class UsernameANDPhoneNumberUpdateView(generics.UpdateAPIView):
+    queryset = CustomUser.objects.all()
+    permission_classes = (IsAuthenticated,)
+    serializer_class = UsernameANDPhoneNumberUpdateSerializer
+
+    def get_object(self):
+        return self.request.user
 
 
 # ===================================  email list view ====================================

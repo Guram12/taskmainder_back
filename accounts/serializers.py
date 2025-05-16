@@ -32,7 +32,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ('id','email', 'username', 'phone_number', 'profile_picture' , 'timezone')
+        fields = ('id','email', 'username', 'phone_number', 'profile_picture' , 'timezone', 'is_email_verified', 'is_social_account')
 
 
 
@@ -58,7 +58,10 @@ class UpdateProfilePictureSerializer(serializers.ModelSerializer):
 # ===============================================================================================================
 
 
-
+class UsernameANDPhoneNumberUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ['username', 'phone_number']
 
 
 
