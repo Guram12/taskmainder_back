@@ -24,7 +24,7 @@ class CustomUser(AbstractUser):
     )    
     is_email_verified = models.BooleanField(default=False)  
     timezone = models.CharField(max_length=50, choices=[(tz, tz) for tz in pytz.all_timezones], default='UTC', blank=True, null=True)
-
+    is_social_account = models.BooleanField(default=False)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
