@@ -5,7 +5,7 @@ from rest_framework import status
 from django.db.models import Q
 from .models import CustomUser
 from .serializers import RegisterSerializer, UserProfileSerializer , UserEmailSerializer \
-    , UpdateProfilePictureSerializer, UsernameANDPhoneNumberUpdateSerializer
+    , UpdateProfilePictureSerializer, UsernameANDPhoneNumberUpdateSerializer, PasswordChangeSerializer
 
 class RegisterView(generics.CreateAPIView):
     queryset = CustomUser.objects.all()
@@ -132,6 +132,7 @@ class CustomGoogleLogin(APIView):
             'username': username,
             'is_email_verified': True,
             'profile_picture': None, 
+            'is_social_account': True,
 
         })
 
@@ -140,6 +141,8 @@ class CustomGoogleLogin(APIView):
 
         if not created:
             user.is_email_verified = True
+            user.is_social_account = True 
+
             user.save()
 
         return user
@@ -314,3 +317,35 @@ class AccountDeleteView(APIView):
         # Delete the user account
         user.delete()
         return Response({"message": "Account deleted successfully."}, status=status.HTTP_200_OK)
+    
+
+
+# ============================================   password  change view =========================================
+from rest_framework.exceptions import ValidationError
+
+class PasswordChangeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        token = request.data.get('token')
+        new_password = request.data.get('new_password')
+
+        if not token or not new_password:
+            return Response({'error': 'Token and new password are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Decode the token to get the user
+            decoded_token = RefreshToken(token)
+            user_id = decoded_token['user_id']
+            user = CustomUser.objects.get(id=user_id)
+
+            # Set the new password
+            user.set_password(new_password)
+            user.save()
+
+            return Response({"message": "Password changed successfully."}, status=status.HTTP_200_OK)
+        except Exception as e:
+            raise ValidationError({'error': 'Invalid or expired token.'})
+
+
+
