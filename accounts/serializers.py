@@ -11,9 +11,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ('email', 'username', 'password', 'phone_number', 'profile_picture', 'timezone')
 
     def create(self, validated_data):
-        profile_picture = validated_data.pop('profile_picture', None)  # Remove profile_picture from validated_data
-        if not profile_picture:  # Use default only if no profile picture is provided
-            profile_picture = settings.DEFAULT_PROFILE_PICTURE_URL
+        profile_picture = validated_data.pop('profile_picture', None)
 
         user = CustomUser.objects.create_user(
             email=validated_data['email'],

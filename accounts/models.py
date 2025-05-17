@@ -8,8 +8,6 @@ def user_directory_path(instance, filename):
     # file will be uploaded to MEDIA_ROOT/profile_pictures/user_<id>/<filename>
     return f'profile_pictures/user_{instance.email}/{filename}'
 
-def get_default_profile_img_url():
-    return settings.DEFAULT_PROFILE_PICTURE_URL
 
 
 class CustomUser(AbstractUser):
@@ -20,7 +18,6 @@ class CustomUser(AbstractUser):
         upload_to=user_directory_path, 
         blank=True, 
         null=True, 
-        default=get_default_profile_img_url
     )    
     is_email_verified = models.BooleanField(default=False)  
     timezone = models.CharField(max_length=50, choices=[(tz, tz) for tz in pytz.all_timezones], default='UTC', blank=True, null=True)
@@ -36,14 +33,16 @@ class CustomUser(AbstractUser):
     def save(self, *args, **kwargs):
         try:
             this = CustomUser.objects.get(id=self.id)
-            if this.profile_picture != self.profile_picture and this.profile_picture.name != get_default_profile_img_url():
+            if this.profile_picture != self.profile_picture and this.profile_picture:
                 this.profile_picture.delete(save=False)
         except CustomUser.DoesNotExist:
             pass
+
+        # Set profile_picture to None if not provided
+        if not self.profile_picture:
+            self.profile_picture = None
+
         super(CustomUser, self).save(*args, **kwargs)
-
-
-
 
 
 
