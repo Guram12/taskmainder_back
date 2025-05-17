@@ -4,7 +4,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.db.models import Q
 from .models import CustomUser
-from .serializers import RegisterSerializer, UserProfileSerializer , UserEmailSerializer, UpdateProfilePictureSerializer, UsernameANDPhoneNumberUpdateSerializer
+from .serializers import RegisterSerializer, UserProfileSerializer , UserEmailSerializer \
+    , UpdateProfilePictureSerializer, UsernameANDPhoneNumberUpdateSerializer
 
 class RegisterView(generics.CreateAPIView):
     queryset = CustomUser.objects.all()
@@ -130,7 +131,7 @@ class CustomGoogleLogin(APIView):
         user, created = CustomUser.objects.get_or_create(email=email, defaults={
             'username': username,
             'is_email_verified': True,
-            'profile_picture': settings.DEFAULT_PROFILE_PICTURE_URL,  # Set the default profile picture URL
+            'profile_picture': None, 
 
         })
 
@@ -282,13 +283,34 @@ class UpdateProfilePictureView(APIView):
 
     def patch(self, request, *args, **kwargs):
         user = request.user
+
+        # Check if the request contains a flag to delete the profile picture
+        if request.data.get('delete_picture', False):
+            if user.profile_picture:
+                user.profile_picture.delete(save=False)  # Delete the file from AWS S3
+                user.profile_picture = None  # Set the field to None
+                user.save()
+                return Response({"message": "Profile picture deleted successfully"}, status=status.HTTP_200_OK)
+            else:
+                return Response({"error": "No profile picture to delete"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Otherwise, update the profile picture
         serializer = UpdateProfilePictureSerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response({"message": "Profile picture updated successfully"}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
+    
 
 # ===============================================================================================================
 
+
+class AccountDeleteView(APIView):
+    permission_classes = [IsAuthenticated]  # Ensure the user is authenticated via token
+
+    def delete(self, request, *args, **kwargs):
+        user = request.user
+
+        # Delete the user account
+        user.delete()
+        return Response({"message": "Account deleted successfully."}, status=status.HTTP_200_OK)

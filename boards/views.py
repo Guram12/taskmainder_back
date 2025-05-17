@@ -64,7 +64,7 @@ class BoardViewSet(viewsets.ModelViewSet):
                         'id': user.id,
                         'email': user.email,
                         'username': user.username,
-                        'profile_picture': user.profile_picture.url,
+                        'profile_picture': user.profile_picture.url if user.profile_picture else None,
                         'user_status': membership.user_status,
                     })
             except CustomUser.DoesNotExist:
@@ -112,7 +112,7 @@ def get_board_users(request, board_id):
                 'id': membership.user.id,
                 'email': membership.user.email,
                 'username': membership.user.username,
-                'profile_picture': membership.user.profile_picture.url,
+                'profile_picture': membership.user.profile_picture.url if membership.user.profile_picture else None,
                 'user_status': membership.user_status,
             }
             for membership in memberships

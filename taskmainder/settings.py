@@ -199,9 +199,6 @@ AWS_LOCATION = 'media'
 DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 # MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_LOCATION}/'
 
-# Add this line to your settings.py
-DEFAULT_PROFILE_PICTURE_URL = 'profile_pictures/default_profile_img/default_profile_img_1.jpg'
-
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles') 
 
