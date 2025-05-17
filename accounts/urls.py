@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView 
 from .views import RegisterView, UserProfileView, CustomGoogleLogin , CustomConfirmEmailView \
     , CustomTokenObtainPairView ,ProfileFinishView , UserEmailListView , UpdateProfilePictureView \
-    , PasswordResetView, PasswordResetConfirmView , UsernameANDPhoneNumberUpdateView
+    , PasswordResetView, PasswordResetConfirmView , UsernameANDPhoneNumberUpdateView ,AccountDeleteView
 
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
@@ -24,6 +24,7 @@ urlpatterns = [
     path('password-reset-confirm/<uidb64>/<token>/', PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
 
     path('update-username-phone/', UsernameANDPhoneNumberUpdateView.as_view(), name='update_username_phone'),
+    path('delete-account/', AccountDeleteView.as_view(), name='delete_account'),
 ]
 
 

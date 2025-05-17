@@ -4,7 +4,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.db.models import Q
 from .models import CustomUser
-from .serializers import RegisterSerializer, UserProfileSerializer , UserEmailSerializer, UpdateProfilePictureSerializer, UsernameANDPhoneNumberUpdateSerializer
+from .serializers import RegisterSerializer, UserProfileSerializer , UserEmailSerializer \
+    , UpdateProfilePictureSerializer, UsernameANDPhoneNumberUpdateSerializer
 
 class RegisterView(generics.CreateAPIView):
     queryset = CustomUser.objects.all()
@@ -299,5 +300,17 @@ class UpdateProfilePictureView(APIView):
             serializer.save()
             return Response({"message": "Profile picture updated successfully"}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
 # ===============================================================================================================
 
+
+class AccountDeleteView(APIView):
+    permission_classes = [IsAuthenticated]  # Ensure the user is authenticated via token
+
+    def delete(self, request, *args, **kwargs):
+        user = request.user
+
+        # Delete the user account
+        user.delete()
+        return Response({"message": "Account deleted successfully."}, status=status.HTTP_200_OK)
