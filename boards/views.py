@@ -134,3 +134,92 @@ def delete_user_from_board(request, board_id, user_id):
     except BoardMembership.DoesNotExist:
         return Response({'error': 'User not found in board'}, status=404)
     
+
+
+# ==========================================  send user board invite email  ==========================================
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from django.shortcuts import get_object_or_404
+from django.urls import reverse
+from django.utils.http import urlencode
+from .sendemail import send_board_invitation_email
+import secrets
+from rest_framework.views import APIView
+from .models import BoardInvitation
+
+
+
+class SendInvitationEmailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, board_id):
+        emails = request.data.get('email', [])  # Expecting an array of emails
+        if not isinstance(emails, list):
+            return Response({'error': 'Invalid data format. "email" should be a list of emails.'}, status=400)
+
+        board = get_object_or_404(Board, id=board_id)
+        failed_emails = []
+
+        for email in emails:
+            try:
+                # Generate a unique token for each email
+                token = secrets.token_urlsafe(32)
+
+                # Save the invitation in the database
+                BoardInvitation.objects.create(email=email, board=board, token=token)
+
+                # Generate the invitation link
+                base_url = request.build_absolute_uri(reverse('accept_invitation'))
+                query_params = urlencode({'token': token})
+                invitation_link = f"{base_url}?{query_params}"
+
+                # Send the email using the existing email-sending function
+                send_board_invitation_email(
+                    email=email,
+                    username=request.user.username,
+                    board_name=board.name,
+                    invitation_link=invitation_link,
+                )
+            except Exception as e:
+                failed_emails.append({'email': email, 'error': str(e)})
+
+        if failed_emails:
+            return Response({
+                'message': 'Some invitations failed to send.',
+                'failed_emails': failed_emails
+            }, status=207)  # 207 Multi-Status for partial success
+
+        return Response({'message': 'All invitations sent successfully!'}, status=200)
+    
+
+# ====================================================== eccept invitation ==========================================
+from django.shortcuts import redirect
+from django.conf import settings
+
+class AcceptInvitationView(APIView):
+    def get(self, request):
+        token = request.GET.get('token')
+
+        # Validate the token and retrieve the invitation data
+        try:
+            invitation = get_object_or_404(BoardInvitation, token=token)
+            board = invitation.board
+            user = get_object_or_404(CustomUser, email=invitation.email)
+
+            # Create the BoardMembership
+            BoardMembership.objects.create(
+                user=user,
+                board=board,
+                user_status='member',
+                is_invitation_accepted=True
+            )
+
+            # Delete the invitation after it's accepted
+            invitation.delete()
+            # Optionally, you can redirect the user to a success page or return a success response
+             
+            return redirect(f'{settings.FRONTEND_URL}?isAuthenticated=true') 
+
+        
+        except Exception as e:
+            return Response({'error': 'Invalid or expired token'}, status=400)

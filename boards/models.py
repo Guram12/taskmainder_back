@@ -1,10 +1,10 @@
 from django.db import models
 from django.conf import settings
 from django.utils.timezone import now
-
 from .tasks import send_task_due_email
 from django.utils.timezone import is_naive, make_aware
 
+# ===============================================================================================
 
 class Board(models.Model):
     name = models.CharField(max_length=255)
@@ -19,6 +19,8 @@ class Board(models.Model):
     def __str__(self):
         return self.name
 
+# ===============================================================================================
+
 class BoardMembership(models.Model):
     USER_STATUS_CHOICES = [
         ('owner', 'Owner'),
@@ -29,14 +31,31 @@ class BoardMembership(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     board = models.ForeignKey(Board, on_delete=models.CASCADE)
     user_status = models.CharField(max_length=10, choices=USER_STATUS_CHOICES)
+    is_invitation_accepted = models.BooleanField(default=False) 
 
     class Meta:
         unique_together = ('user', 'board')
 
     def __str__(self):
         return f"{self.user.email} - {self.board.name} - {self.user_status}"
-    
-    
+
+
+# ===============================================================================================
+
+
+class BoardInvitation(models.Model):
+    email = models.EmailField()
+    board = models.ForeignKey(Board, on_delete=models.CASCADE)
+    token = models.CharField(max_length=64, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Invitation to {self.email} for board {self.board.name}"
+
+
+
+# ===============================================================================================
+
 
 class List(models.Model):
     name= models.CharField(max_length=255)
@@ -48,6 +67,7 @@ class List(models.Model):
   
     def get_sorted_tasks(self):
         return self.tasks.order_by('order') 
+# ===============================================================================================
 
 class Task(models.Model):
     title = models.CharField(max_length=255)

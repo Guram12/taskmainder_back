@@ -5,7 +5,7 @@ from rest_framework import status
 from django.db.models import Q
 from .models import CustomUser
 from .serializers import RegisterSerializer, UserProfileSerializer , UserEmailSerializer \
-    , UpdateProfilePictureSerializer, UsernameANDPhoneNumberUpdateSerializer
+    , UpdateProfilePictureSerializer, UsernameANDPhoneNumberUpdateSerializer, PasswordChangeSerializer
 
 class RegisterView(generics.CreateAPIView):
     queryset = CustomUser.objects.all()
@@ -55,21 +55,28 @@ from django.contrib.auth import authenticate
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
-    def post(self , request, *args, **kwargs):
-        email= request.data.get('email')
+    def post(self, request, *args, **kwargs):
+        email = request.data.get('email')
         password = request.data.get('password')
-        user= authenticate(request, email = email , password = password)
 
-        if user is not None:
-            if user.is_email_verified:
-                return super().post(request, args, kwargs)
-            else:
+        try:
+            # Check if the user exists
+            user = CustomUser.objects.get(email=email)
+            
+            # Check if the email is verified
+            if not user.is_email_verified:
                 return Response({'error': 'Email is not verified'}, status=status.HTTP_400_BAD_REQUEST)
-        else:
+            
+            # Authenticate the user
+            user = authenticate(request, email=email, password=password)
+            if user is not None:
+                return super().post(request, *args, **kwargs)
+            else:
+                return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
+        except CustomUser.DoesNotExist:
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
-
-
-
+        
+        
 # =========================== google login view ===============================
 from rest_framework import status
 from rest_framework.response import Response
@@ -132,6 +139,7 @@ class CustomGoogleLogin(APIView):
             'username': username,
             'is_email_verified': True,
             'profile_picture': None, 
+            'is_social_account': True,
 
         })
 
@@ -140,6 +148,8 @@ class CustomGoogleLogin(APIView):
 
         if not created:
             user.is_email_verified = True
+            user.is_social_account = True 
+
             user.save()
 
         return user
@@ -314,3 +324,24 @@ class AccountDeleteView(APIView):
         # Delete the user account
         user.delete()
         return Response({"message": "Account deleted successfully."}, status=status.HTTP_200_OK)
+    
+
+
+# ============================================   password  change view =========================================
+from rest_framework.exceptions import ValidationError
+
+class PasswordChangeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        new_password = request.data.get('new_password')
+
+        if not new_password:
+            return Response({'error': 'New password is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = request.user  # Get the authenticated user from the request
+        user.set_password(new_password)
+        user.save()
+
+        return Response({"message": "Password changed successfully."}, status=status.HTTP_200_OK)
+

@@ -462,30 +462,6 @@ class BoardConsumer(AsyncWebsocketConsumer):
             print('Membership does not exist:', user_id, self.board_id)
 
 
-    async def add_user(self, payload):
-        emails = payload['emails']
-        board_id = payload['board_id']
-
-        for email in emails:
-            try:
-                user = await CustomUser.objects.aget(email=email)
-                await self.add_user_to_board(user, board_id)
-
-                await self.channel_layer.group_send(
-                    self.board_group_name,
-                    {
-                        'type': 'board_message',
-                        'action': 'add_user',
-                        'payload': {
-                            'user_id': user.id,
-                            'email': user.email,
-                            'username': user.username,
-                            'profile_picture': user.profile_picture.url,
-                        }
-                    }
-                )
-            except CustomUser.DoesNotExist:
-                print('User does not exist:', email)
 
     async def delete_user_from_board(self, payload):
         user_id = payload['user_id']
@@ -521,14 +497,6 @@ class BoardConsumer(AsyncWebsocketConsumer):
             return membership.user_status in ['owner', 'admin']
         except BoardMembership.DoesNotExist:
             return False
-
-    @database_sync_to_async
-    def add_user_to_board(self, user, board_id):
-        try:
-            board = Board.objects.get(id=board_id)
-            BoardMembership.objects.create(board=board, user=user, user_status='member')
-        except Board.DoesNotExist:
-            print(f'Board does not exist: {board_id}')
 
     @database_sync_to_async
     def is_owner(self):
