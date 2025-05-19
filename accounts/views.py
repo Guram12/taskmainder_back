@@ -55,21 +55,28 @@ from django.contrib.auth import authenticate
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
-    def post(self , request, *args, **kwargs):
-        email= request.data.get('email')
+    def post(self, request, *args, **kwargs):
+        email = request.data.get('email')
         password = request.data.get('password')
-        user= authenticate(request, email = email , password = password)
 
-        if user is not None:
-            if user.is_email_verified:
-                return super().post(request, args, kwargs)
-            else:
+        try:
+            # Check if the user exists
+            user = CustomUser.objects.get(email=email)
+            
+            # Check if the email is verified
+            if not user.is_email_verified:
                 return Response({'error': 'Email is not verified'}, status=status.HTTP_400_BAD_REQUEST)
-        else:
+            
+            # Authenticate the user
+            user = authenticate(request, email=email, password=password)
+            if user is not None:
+                return super().post(request, *args, **kwargs)
+            else:
+                return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
+        except CustomUser.DoesNotExist:
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
-
-
-
+        
+        
 # =========================== google login view ===============================
 from rest_framework import status
 from rest_framework.response import Response
