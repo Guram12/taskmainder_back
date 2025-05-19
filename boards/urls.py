@@ -1,6 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import BoardViewSet, ListViewSet, TaskViewSet , delete_user_from_board, get_board_users
+from .views import BoardViewSet, ListViewSet, TaskViewSet , delete_user_from_board, get_board_users \
+, SendInvitationEmailView, AcceptInvitationView
 
 router = DefaultRouter()
 router.register(r'boards', BoardViewSet)
@@ -15,6 +16,9 @@ urlpatterns = [
     path('boards/<int:board_id>/users/', get_board_users, name='get_board_users'),
     path('boards/<int:board_id>/users/<int:user_id>/delete/', delete_user_from_board, name='delete_user_from_board'),
 
+    #  send invitation email and add user to board
+    path('boards/<int:board_id>/send-invitation/', SendInvitationEmailView.as_view(), name='send_invitation_email'),
+    path('accept-invitation/', AcceptInvitationView.as_view(), name='accept_invitation'),
 ]
 
 

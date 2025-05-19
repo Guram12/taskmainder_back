@@ -120,3 +120,48 @@ def send_password_reset_email(email, reset_link):
         logger.info(f"Password reset email sent to {email}. Brevo response: {response}")
     except ApiException as e:
         logger.error(f"Error sending password reset email: {e}")
+
+
+
+# ===========================================  send board invitation imaail  ===========================================
+
+# email=email,
+# username=request.user.username,
+# Board_name={board.name},
+# invitation_link=invitation_link,
+
+def send_board_invitation_email(email, username, board_name, invitation_link):
+    """
+    Sends a board invitation email using Brevo.
+    """
+    logger.info(f"Preparing to send board invitation email to {email} for board '{board_name}' with link: {invitation_link}")
+
+    configuration = sib_api_v3_sdk.Configuration()
+    configuration.api_key['api-key'] = config('BREVO_API_KEY')
+
+    # Create an instance of the API class
+    api_instance = TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(configuration))
+
+    # Define the email content
+    send_smtp_email = SendSmtpEmail(
+        sender={"email": "guramshanidze44@gmail.com", "name": "Task Reminder"}, 
+        to=[{"email": f"{email}"}],
+        template_id=5, 
+        params={
+            "email": email,  
+            "username": username,  
+            "board_name": board_name,
+            "invitation_link": invitation_link, 
+        },
+        headers={"X-Mailin-Tag": "board_invitation"}
+    )
+    try:
+        logger.info(f"Sending board invitation email to {email} for board '{board_name}'")
+        response = api_instance.send_transac_email(send_smtp_email)
+        logger.info(f"Board invitation email sent successfully. Brevo response: {response}")
+    except Exception as e:
+        logger.error(f"Error sending board invitation email: {e}")
+
+
+
+    
