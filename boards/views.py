@@ -195,13 +195,17 @@ class SendInvitationEmailView(APIView):
 # ====================================================== eccept invitation ==========================================
 from django.shortcuts import redirect
 from django.conf import settings
+from pywebpush import webpush, WebPushException
+
+
+
 
 class AcceptInvitationView(APIView):
     def get(self, request):
         token = request.GET.get('token')
 
-        # Validate the token and retrieve the invitation data
         try:
+            # Retrieve the invitation and associated board/user
             invitation = get_object_or_404(BoardInvitation, token=token)
             board = invitation.board
             user = get_object_or_404(CustomUser, email=invitation.email)
@@ -216,10 +220,101 @@ class AcceptInvitationView(APIView):
 
             # Delete the invitation after it's accepted
             invitation.delete()
-            # Optionally, you can redirect the user to a success page or return a success response
-             
-            return redirect(f'{settings.FRONTEND_URL}?isAuthenticated=true') 
 
-        
+            # Send push notification to the inviter
+            inviter = board.boardmembership_set.filter(user_status='owner').first().user
+            subscriptions = PushSubscription.objects.filter(user=inviter)
+
+            for subscription in subscriptions:
+                try:
+                    webpush(
+                        subscription_info=subscription.subscription_info,
+                        data=json.dumps({
+                            'title': 'Board Invitation Accepted',
+                            'body': f'{user.username} has joined your board "{board.name}".',
+                        }),
+                        vapid_private_key='4aMg0XhG2sXL0LAftafusC0jpOorGDb8efcyxsCNjvw', 
+                        vapid_claims={
+                            'sub': 'mailto:mydailydoer@gmail.com' 
+                        }
+                    )
+                except WebPushException as e:
+                    print(f"Web push failed: {e}")
+
+            # Redirect to the frontend
+            return redirect(f'{settings.FRONTEND_URL}?isAuthenticated=true')
+
         except Exception as e:
             return Response({'error': 'Invalid or expired token'}, status=400)
+        
+
+# ============================================= push notification ==========================================from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from .models import PushSubscription
+import json
+
+
+@csrf_exempt
+@api_view(['POST'])
+@permission_classes([IsAuthenticated]) 
+def save_subscription(request):
+    if request.method == 'POST':
+        print('saving subscription')
+        data = json.loads(request.body)
+        user = request.user  # Authenticated user
+        PushSubscription.objects.update_or_create(
+            user=user,
+            defaults={'subscription_info': data}
+        )
+        return JsonResponse({'message': 'Subscription saved successfully!'})
+    
+
+
+# ===============  update user from board and send board user update push notrification   ===========================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
