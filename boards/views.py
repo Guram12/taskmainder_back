@@ -235,7 +235,7 @@ class AcceptInvitationView(APIView):
                         }),
                         vapid_private_key='4aMg0XhG2sXL0LAftafusC0jpOorGDb8efcyxsCNjvw', 
                         vapid_claims={
-                            'sub': 'mailto:your-email@example.com' 
+                            'sub': 'mailto:mydailydoer@gmail.com' 
                         }
                     )
                 except WebPushException as e:
@@ -268,3 +268,53 @@ def save_subscription(request):
             defaults={'subscription_info': data}
         )
         return JsonResponse({'message': 'Subscription saved successfully!'})
+    
+
+
+# ===============  update user from board and send board user update push notrification   ===========================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
