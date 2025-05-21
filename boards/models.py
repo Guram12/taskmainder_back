@@ -132,3 +132,11 @@ class Task(models.Model):
                     args=[self.id, user.email, user.username, self.title, self.due_date.isoformat(), self.priority],
                     eta=self.due_date
                 )
+
+
+# ============================================== push notification ========================================================
+
+
+class PushSubscription(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    subscription_info = models.JSONField()
