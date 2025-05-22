@@ -1,6 +1,6 @@
 # DOCKER SETUP GUIDE
 
-This guide explains how to set up and run the Dockerized Django project with PostgreSQL, Redis, Celery, and Daphne.
+This guide explains how to set up and run the Dockerized Django project with PostgreSQL, Redis, Celery, and Daphne. It also explains how to configure the project to use either an **external database** (e.g., AWS RDS) or a **local PostgreSQL database** inside a Docker container.
 
 ---
 
@@ -21,6 +21,7 @@ task_management_app/
 │   ├── taskmainder/
 │   │   ├── Dockerfile
 │   │   ├── docker-compose.yml
+│   │   ├── docker_conf_for_local.yml
 │   │   ├── requirements.txt
 │   │   ├── DOCKER_SETUP.md
 │   │   ├── ...
@@ -30,29 +31,83 @@ task_management_app/
 
 ## 3. Docker Configuration
 
-### 3.1 Dockerfile
-The `Dockerfile` defines how to build the Docker image for the Django application. It:
+### 3.1 Using an External Database (e.g., AWS RDS)
+If you are using an external database like AWS RDS, you **do not need the PostgreSQL container**. Instead, you should define the database credentials in the `environment` section of the `django` service in your `docker-compose.yml` file.
 
-- Uses the official Python image.
-- Installs dependencies from `requirements.txt`.
-- Runs Daphne to serve the Django application.
+#### Example `docker-compose.yml` for External Database:
+```yaml
+version: '3.8'
 
-### 3.2 docker-compose.yml
-The `docker-compose.yml` file defines the services:
+services:
+  django:
+    build:
+      context: .
+    container_name: django_app
+    command: daphne -b 0.0.0.0 -p 8000 taskmainder.asgi:application
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - DB_NAME=your_database_name
+      - DB_USER=your_database_user
+      - DB_PASSWORD=your_database_password
+      - DB_HOST=your-rds-endpoint.amazonaws.com
+      - DB_PORT=5432
 
-- **django**: Runs the Django application using Daphne.
-- **postgres**: Provides the PostgreSQL database.
-- **redis**: Provides a message broker for Celery and a channel layer for Django Channels.
-- **celery_worker**: Executes background tasks.
-- **celery_beat**: Manages periodic tasks.
+  redis:
+    image: redis:6.2
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+  celery_worker:
+    build:
+      context: .
+    container_name: celery_worker
+    command: celery -A taskmainder worker --loglevel=info
+    depends_on:
+      - redis
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+
+  celery_beat:
+    build:
+      context: .
+    container_name: celery_beat
+    command: celery -A taskmainder beat --loglevel=info
+    depends_on:
+      - redis
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+```
+
+#### Update `settings.py` for External Database:
+In your `settings.py`, configure the `DATABASES` setting to use environment variables:
+```python
+import os
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DB_NAME', ''),
+        'USER': os.getenv('DB_USER', ''),
+        'PASSWORD': os.getenv('DB_PASSWORD', ''),
+        'HOST': os.getenv('DB_HOST', ''),
+        'PORT': os.getenv('DB_PORT', '5432'),
+    }
+}
+```
 
 ---
 
-## 4. Adding PostgreSQL to Docker
+### 3.2 Using a Local PostgreSQL Database Inside Docker
+If you are running the database locally inside a Docker container, you should use the `docker_conf_for_local.yml` file. This file includes a `postgres` service to run PostgreSQL inside Docker.
 
-### 4.1 Update `docker-compose.yml`
-Add the PostgreSQL service to your `docker-compose.yml` file:
-
+#### Example `docker_conf_for_local.yml`:
 ```yaml
 version: '3.8'
 
@@ -71,18 +126,11 @@ services:
       - postgres
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
-
-  postgres:
-    image: postgres:14
-    container_name: postgres
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: taskmainder
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - DB_NAME=taskmainder
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=postgres
+      - DB_PORT=5432
 
   redis:
     image: redis:6.2
@@ -112,15 +160,24 @@ services:
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
 
+  postgres:
+    image: postgres:14
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: taskmainder
+    ports:
+      - "5433:5432" 
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
 volumes:
   postgres_data:
 ```
 
----
-
-### 4.2 Update `settings.py`
-Update the `DATABASES` configuration in your Django `settings.py` file to use PostgreSQL:
-
+#### Update `settings.py` for Local Database:
+In your `settings.py`, configure the `DATABASES` setting to use the local PostgreSQL container:
 ```python
 DATABASES = {
     'default': {
@@ -128,7 +185,7 @@ DATABASES = {
         'NAME': 'taskmainder',
         'USER': 'postgres',
         'PASSWORD': 'postgres',
-        'HOST': 'postgres',  # Use the service name defined in docker-compose.yml
+        'HOST': 'postgres',  # Service name in docker-compose
         'PORT': '5432',
     }
 }
@@ -136,35 +193,34 @@ DATABASES = {
 
 ---
 
-### 4.3 Install PostgreSQL Dependencies
-Ensure that the `psycopg2` library (PostgreSQL adapter for Python) is included in your `requirements.txt` file:
+## 4. How to Switch Between External and Local Database
 
-```
-psycopg2-binary
-```
+- **For External Database (e.g., AWS RDS)**:
+  - Use the `docker-compose.yml` file.
+  - Remove the `postgres` service and define the database credentials in the `environment` section of the `django` service.
 
-If it's not already there, add it and rebuild the Docker image:
-
-```bash
-docker-compose build
-```
+- **For Local Database**:
+  - Use the `docker_conf_for_local.yml` file.
+  - Ensure the `postgres` service is included and the `DB_HOST` is set to `postgres`.
 
 ---
 
-## 5. How to Build and Run the Project
+## 5. Running the Project
 
 ### 5.1 Build the Docker Images
 Run the following command to build the Docker images:
 
 ```bash
-docker-compose build
+docker-compose -f <compose-file>.yml build
 ```
 
+Replace `<compose-file>` with either `docker-compose.yml` (for external database) or `docker_conf_for_local.yml` (for local database).
+
 ### 5.2 Start the Services
-Start all services (Django, PostgreSQL, Redis, Celery, etc.):
+Start all services:
 
 ```bash
-docker-compose up
+docker-compose -f <compose-file>.yml up
 ```
 
 ---
@@ -187,74 +243,11 @@ docker exec -it django_app python manage.py migrate
 
 ---
 
-## 8. Common Commands
+## 8. Notes on Persistent Data
 
-### View Logs
-```bash
-docker-compose logs -f
-```
-
-### View Logs for a Specific Service
-```bash
-docker-compose logs django
-```
-
-### Restart a Specific Service
-```bash
-docker-compose restart django
-```
-
-### Check Running Containers
-```bash
-docker ps
-```
+- For the local PostgreSQL database, the `postgres_data` volume ensures that your data persists even if the container is stopped or removed.
+- For the external database, data persistence is managed by the database provider (e.g., AWS RDS).
 
 ---
 
-## 9. Troubleshooting
-
-### PostgreSQL Connection Issues
-If you see errors like `connection refused` or `OperationalError`, ensure that:
-
-1. The `postgres` service is running:
-   ```bash
-   docker ps
-   ```
-
-2. The `DATABASES` configuration in `settings.py` uses `postgres` as the `HOST`.
-
-3. The PostgreSQL container is accessible. Check the logs:
-   ```bash
-   docker logs postgres
-   ```
-
-### Permission Denied Errors
-If you encounter `PermissionError` when running Docker commands:
-
-1. Add your user to the Docker group:
-   ```bash
-   sudo usermod -aG docker $USER
-   ```
-
-2. Log out and log back in, or run:
-   ```bash
-   newgrp docker
-   ```
-
----
-
-## 10. Notes on Persistent Data
-
-The `postgres_data` volume ensures that your PostgreSQL data persists even if the container is stopped or removed. If you want to reset the database, remove the volume:
-
-```bash
-docker-compose down --volumes
-```
-
----
-
-## 11. Additional Resources
-
-- [Django Documentation](https://docs.djangoproject.com/)
-- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
-- [Docker Documentation](https://docs.docker.com/)
+Let me know if you need further clarification!
