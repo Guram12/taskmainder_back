@@ -263,12 +263,16 @@ def save_subscription(request):
         print('saving subscription')
         data = json.loads(request.body)
         user = request.user  # Authenticated user
-        PushSubscription.objects.update_or_create(
+
+        # Ensure only one subscription exists for the user
+        PushSubscription.objects.filter(user=user).delete()
+
+        # Create or update the subscription
+        PushSubscription.objects.create(
             user=user,
-            defaults={'subscription_info': data}
+            subscription_info=data
         )
         return JsonResponse({'message': 'Subscription saved successfully!'})
-    
 
 
 # ===============  update user from board and send board user update push notrification   ===========================

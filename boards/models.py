@@ -137,6 +137,10 @@ class Task(models.Model):
 # ============================================== push notification ========================================================
 
 
+# filepath: /home/guram/Desktop/task_management_app/task_back/taskmainder/boards/models.py
 class PushSubscription(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     subscription_info = models.JSONField()
+
+    class Meta:
+        unique_together = ('user',)
