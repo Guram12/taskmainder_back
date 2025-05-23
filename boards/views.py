@@ -220,7 +220,7 @@ class AcceptInvitationView(APIView):
             notification_body = f'{user.username} has joined your board "{board.name}".'
 
             # Save the notification in the database
-            Notification.objects.create(
+            notification = Notification.objects.create(
                 user=inviter,
                 title=notification_title,
                 body=notification_body
@@ -231,8 +231,16 @@ class AcceptInvitationView(APIView):
                     webpush(
                         subscription_info=subscription.subscription_info,
                         data=json.dumps({
+                            'type': 'BOARD_INVITATION_ACCEPTED', 
                             'title': notification_title,
                             'body': notification_body,
+                            'boardName': board.name,
+                            'invitedUserEmail': user.email,
+                            'invitedUserName': user.username,
+                            'notification_id': notification.id, 
+                            'is_read': notification.is_read,
+
+
                         }),
                         vapid_private_key='4aMg0XhG2sXL0LAftafusC0jpOorGDb8efcyxsCNjvw', 
                         vapid_claims={
@@ -282,7 +290,8 @@ def delete_user_from_board(request, board_id, user_id):
         # Send a notification to the removed user
         notification_title = "Removed from Board"
         notification_body = f"You have been removed from the board '{board.name}'."
-        Notification.objects.create(
+
+        notification = Notification.objects.create(
             user=user,
             title=notification_title,
             body=notification_body
@@ -295,8 +304,14 @@ def delete_user_from_board(request, board_id, user_id):
                 webpush(
                     subscription_info=subscription.subscription_info,
                     data=json.dumps({
+                        'type': 'USER_REMOVED_FROM_BOARD',  # New type for this notification
                         'title': notification_title,
                         'body': notification_body,
+                        'boardName': board.name,
+                        'removedUserEmail': user.email,
+                        'notification_id': notification.id, 
+                        'is_read': notification.is_read,
+
                     }),
                     vapid_private_key='4aMg0XhG2sXL0LAftafusC0jpOorGDb8efcyxsCNjvw',
                     vapid_claims={
@@ -309,8 +324,6 @@ def delete_user_from_board(request, board_id, user_id):
         return Response({'status': 'success', 'message': 'User removed from board and notified.'})
     except BoardMembership.DoesNotExist:
         return Response({'error': 'User not found in board'}, status=404)
-
-
 
 
 

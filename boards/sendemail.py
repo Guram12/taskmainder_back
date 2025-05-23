@@ -1,19 +1,18 @@
-import sib_api_v3_sdk  # Import the main module
+import sib_api_v3_sdk
 from sib_api_v3_sdk import TransactionalEmailsApi, SendSmtpEmail
 from sib_api_v3_sdk.rest import ApiException
 from decouple import config
 from logging import getLogger
 from datetime import datetime
-import pytz  
-
-
+import pytz
+from pywebpush import webpush, WebPushException
+import json
 
 logger = getLogger(__name__)
 
-
 def send_due_date_email_to_user(email, username, task_name, due_date, user_timezone, priority):
     """
-    Sends an email using Brevo with task due information.
+    Sends an email using Brevo with task due information and a push notification.
     """
     logger.info(f"Preparing to send email to {email} for task '{task_name}' due on {due_date} with priority {priority}")
 
@@ -37,7 +36,7 @@ def send_due_date_email_to_user(email, username, task_name, due_date, user_timez
         logger.error(f"Error converting due_date to user's timezone: {e}")
         formatted_due_date = due_date  # Fallback to the original format
 
-    # send formated priority 
+    # send formatted priority 
     if priority == 'green':
         updated_priority = 'Low'
     elif priority == 'orange':
@@ -75,6 +74,52 @@ def send_due_date_email_to_user(email, username, task_name, due_date, user_timez
         logger.info(f"Brevo Response: {response}")
     except ApiException as e:
         logger.error(f"Error sending email: {e}")
+
+    # Send push notification
+    try:
+        # Lazy import models to avoid circular import
+        from .models import PushSubscription, Notification
+
+        subscriptions = PushSubscription.objects.filter(user__email=email)
+        notification_title = "Task Due Reminder"
+        notification_body = f"Task '{task_name}' is due on {formatted_due_date} with priority {updated_priority}."
+
+        # Save the notification in the database
+        notification = Notification.objects.create(
+            user=subscriptions.first().user if subscriptions.exists() else None,
+            title=notification_title,
+            body=notification_body
+        )
+
+        # Inside send_due_date_email_to_user function
+        for subscription in subscriptions:
+            try:
+                webpush(
+                    subscription_info=subscription.subscription_info,
+                    data=json.dumps({
+                        'type': 'TASK_DUE_REMINDER',  # New type for task due notifications
+                        'title': notification_title,
+                        'body': notification_body,
+                        'taskName': task_name,
+                        'dueDate': formatted_due_date,
+                        'priority': updated_priority,
+                        'notification_id': notification.id,  
+                        'is_read': notification.is_read,
+
+                    }),
+                    vapid_private_key=config('VAPID_PRIVATE_KEY'),
+                    vapid_claims={
+                        'sub': 'mailto:your-email@example.com'
+                    }
+                )
+                logger.info(f"Push notification sent to {email} for task '{task_name}'")
+            except WebPushException as e:
+                logger.error(f"Web push failed for {email}: {e}")
+    except Exception as e:
+        logger.error(f"Error sending push notification: {e}")
+
+
+
 
 # from boards.sendemail import send_due_date_email_to_user
 # send_due_date_email_to_user('guramshanidze44@gmail.com', 'Test -3- Task', '2025-05-09T12:30:00+00:00')
