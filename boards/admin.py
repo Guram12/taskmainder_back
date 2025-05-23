@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Board, BoardMembership , List, Task, BoardInvitation
+from .models import Board, BoardMembership , List, Task, BoardInvitation , Notification , PushSubscription
 from django import forms
 from django.contrib.auth import get_user_model
 
@@ -38,3 +38,5 @@ admin.site.register(BoardMembership, BoardMembershipAdmin)
 admin.site.register(List)
 admin.site.register(Task)
 admin.site.register(BoardInvitation)
+admin.site.register(Notification)
+admin.site.register(PushSubscription)

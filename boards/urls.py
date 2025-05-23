@@ -1,7 +1,8 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import BoardViewSet, ListViewSet, TaskViewSet , delete_user_from_board, get_board_users \
-, SendInvitationEmailView, AcceptInvitationView , save_subscription
+    , SendInvitationEmailView, AcceptInvitationView , save_subscription, get_notifications \
+    , mark_all_notifications_as_read, delete_notification , delete_all_notifications
 
 router = DefaultRouter()
 router.register(r'boards', BoardViewSet)
@@ -22,6 +23,14 @@ urlpatterns = [
 
     # save subscription
     path('save-subscription/', save_subscription, name='save_subscription'),
+
+    path('notifications/', get_notifications, name='get_notifications'),
+    path('notifications/mark-all-as-read/', mark_all_notifications_as_read, name='mark_all_notifications_as_read'),
+    path('notifications/<int:notification_id>/delete/', delete_notification, name='delete_notification'),
+    path('notifications/delete-all/', delete_all_notifications, name='delete_all_notifications'),
+
+
+    path('boards/<int:board_id>/users/<int:user_id>/delete/', delete_user_from_board, name='delete_user_from_board'),
 ]
 
 
