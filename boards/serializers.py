@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Board, Task, List, BoardMembership
+from .models import Board, Task, List, BoardMembership, Notification
 from accounts.models import CustomUser
 from rest_framework.exceptions import ValidationError
 
@@ -60,3 +60,11 @@ class BoardSerializer(serializers.ModelSerializer):
         
         BoardMembership.objects.create(board=board, user=user, user_status=user_status)
         return board
+    
+
+# ============================== get user notifications serializer ==============================
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['id', 'title', 'body', 'is_read', 'created_at']

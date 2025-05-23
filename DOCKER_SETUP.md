@@ -248,6 +248,3 @@ docker exec -it django_app python manage.py migrate
 - For the local PostgreSQL database, the `postgres_data` volume ensures that your data persists even if the container is stopped or removed.
 - For the external database, data persistence is managed by the database provider (e.g., AWS RDS).
 
----
-
-Let me know if you need further clarification!

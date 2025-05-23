@@ -124,17 +124,6 @@ def get_board_users(request, board_id):
 
 
 
-@api_view(['DELETE'])
-def delete_user_from_board(request, board_id, user_id):
-    print(f'deleting user {user_id} from board {board_id} ' )
-    try:
-        membership = BoardMembership.objects.get(board_id=board_id, user_id=user_id)
-        membership.delete()
-        return Response({'status': 'success'})
-    except BoardMembership.DoesNotExist:
-        return Response({'error': 'User not found in board'}, status=404)
-    
-
 
 # ==========================================  send user board invite email  ==========================================
 from rest_framework.decorators import api_view, permission_classes
@@ -200,6 +189,8 @@ from pywebpush import webpush, WebPushException
 
 
 
+from .models import Notification
+
 class AcceptInvitationView(APIView):
     def get(self, request):
         token = request.GET.get('token')
@@ -225,13 +216,31 @@ class AcceptInvitationView(APIView):
             inviter = board.boardmembership_set.filter(user_status='owner').first().user
             subscriptions = PushSubscription.objects.filter(user=inviter)
 
+            notification_title = 'Board Invitation Accepted'
+            notification_body = f'{user.username} has joined your board "{board.name}".'
+
+            # Save the notification in the database
+            notification = Notification.objects.create(
+                user=inviter,
+                title=notification_title,
+                body=notification_body
+            )
+
             for subscription in subscriptions:
                 try:
                     webpush(
                         subscription_info=subscription.subscription_info,
                         data=json.dumps({
-                            'title': 'Board Invitation Accepted',
-                            'body': f'{user.username} has joined your board "{board.name}".',
+                            'type': 'BOARD_INVITATION_ACCEPTED', 
+                            'title': notification_title,
+                            'body': notification_body,
+                            'boardName': board.name,
+                            'invitedUserEmail': user.email,
+                            'invitedUserName': user.username,
+                            'notification_id': notification.id, 
+                            'is_read': notification.is_read,
+
+
                         }),
                         vapid_private_key='4aMg0XhG2sXL0LAftafusC0jpOorGDb8efcyxsCNjvw', 
                         vapid_claims={
@@ -246,7 +255,84 @@ class AcceptInvitationView(APIView):
 
         except Exception as e:
             return Response({'error': 'Invalid or expired token'}, status=400)
-        
+
+# ================================================  get user notifications ==========================================
+
+from rest_framework.decorators import api_view
+from rest_framework.permissions import IsAuthenticated
+from .models import Notification
+from .serializers import NotificationSerializer
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_notifications(request):
+    user = request.user
+    notifications = Notification.objects.filter(user=user).order_by('-created_at')
+    serializer = NotificationSerializer(notifications, many=True)
+    return Response(serializer.data)
+
+
+
+# ====================================  delete user from board and send notification =====================================
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_user_from_board(request, board_id, user_id):
+    print(f'Deleting user {user_id} from board {board_id}')
+    try:
+        membership = BoardMembership.objects.get(board_id=board_id, user_id=user_id)
+        user = membership.user
+        board = membership.board
+
+        # Delete the membership
+        membership.delete()
+
+        # Send a notification to the removed user
+        notification_title = "Removed from Board"
+        notification_body = f"You have been removed from the board '{board.name}'."
+
+        notification = Notification.objects.create(
+            user=user,
+            title=notification_title,
+            body=notification_body
+        )
+
+        # Optionally, send a push notification if the user has a subscription
+        subscriptions = PushSubscription.objects.filter(user=user)
+        for subscription in subscriptions:
+            try:
+                webpush(
+                    subscription_info=subscription.subscription_info,
+                    data=json.dumps({
+                        'type': 'USER_REMOVED_FROM_BOARD',  # New type for this notification
+                        'title': notification_title,
+                        'body': notification_body,
+                        'boardName': board.name,
+                        'removedUserEmail': user.email,
+                        'notification_id': notification.id, 
+                        'is_read': notification.is_read,
+
+                    }),
+                    vapid_private_key='4aMg0XhG2sXL0LAftafusC0jpOorGDb8efcyxsCNjvw',
+                    vapid_claims={
+                        'sub': 'mailto:mydailydoer@gmail.com'
+                    }
+                )
+            except WebPushException as e:
+                print(f"Web push failed: {e}")
+
+        return Response({'status': 'success', 'message': 'User removed from board and notified.'})
+    except BoardMembership.DoesNotExist:
+        return Response({'error': 'User not found in board'}, status=404)
+
+
+
+
+
+
+
+
+
 
 # ============================================= push notification ==========================================from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.csrf import csrf_exempt
@@ -263,32 +349,51 @@ def save_subscription(request):
         print('saving subscription')
         data = json.loads(request.body)
         user = request.user  # Authenticated user
-        PushSubscription.objects.update_or_create(
+
+        # Ensure only one subscription exists for the user
+        PushSubscription.objects.filter(user=user).delete()
+
+        # Create or update the subscription
+        PushSubscription.objects.create(
             user=user,
-            defaults={'subscription_info': data}
+            subscription_info=data
         )
         return JsonResponse({'message': 'Subscription saved successfully!'})
-    
-
-
-# ===============  update user from board and send board user update push notrification   ===========================
 
 
 
+# ============================================= mark all notifications as read ==========================================
 
 
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def mark_all_notifications_as_read(request):
+    user = request.user
+    unread_notifications = Notification.objects.filter(user=user, is_read=False)
+    unread_notifications.update(is_read=True)  # Mark all as read in bulk
+    return Response({'message': 'All unread notifications marked as read.'})
+
+# ================================================  delete specific Notification ==========================================
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_notification(request, notification_id):
+    try:
+        # Ensure the notification belongs to the authenticated user
+        notification = Notification.objects.get(id=notification_id, user=request.user)
+        notification.delete()
+        return Response({'message': 'Notification deleted successfully.'}, status=200)
+    except Notification.DoesNotExist:
+        return Response({'error': 'Notification not found.'}, status=404)
 
 
-
-
-
-
-
-
-
-
-
-
+# ================================================  delete all Notification ==========================================
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_all_notifications(request):
+    user = request.user
+    Notification.objects.filter(user=user).delete()
+    return Response({'message': 'All notifications deleted successfully.'}, status=200)
 
 
 
