@@ -5,6 +5,9 @@ from .tasks import send_task_due_email
 from django.utils.timezone import is_naive, make_aware
 
 # ===============================================================================================
+def user_background_image_path(instance, filename):
+    # file will be uploaded to MEDIA_ROOT/background_images/board_<id>/<filename>
+    return f'background_images/board_{instance.id}/{filename}'
 
 class Board(models.Model):
     name = models.CharField(max_length=255)
@@ -14,6 +17,11 @@ class Board(models.Model):
         through='BoardMembership',
         related_name='boards_members',
         blank=True
+    )
+    background_image = models.ImageField(
+        upload_to=user_background_image_path,
+        blank=True,
+        null=True
     )
 
     def __str__(self):

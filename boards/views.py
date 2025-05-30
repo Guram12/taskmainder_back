@@ -239,7 +239,7 @@ class AcceptInvitationView(APIView):
                             'invitedUserName': user.username,
                             'notification_id': notification.id, 
                             'is_read': notification.is_read,
-
+                            'board_id': board.id, 
 
                         }),
                         vapid_private_key='4aMg0XhG2sXL0LAftafusC0jpOorGDb8efcyxsCNjvw', 
@@ -395,27 +395,120 @@ def delete_all_notifications(request):
     Notification.objects.filter(user=user).delete()
     return Response({'message': 'All notifications deleted successfully.'}, status=200)
 
+# ================================================ self delete from board =========================================================
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def self_delete_from_board(request, board_id):
+    user = request.user
+    try:
+        membership = BoardMembership.objects.get(board_id=board_id, user=user)
+        board = membership.board
+
+        # Prevent the owner from deleting themselves
+        if membership.user_status == 'owner':
+            return Response({'error': 'Owner cannot delete themselves from the board.'}, status=403)
+
+        # Delete the membership
+        membership.delete()
+
+        # Send a notification to the user who left the board
+        notification_title = "Left Board"
+        notification_body = f"You have left the board '{board.name}'."
+        Notification.objects.create(
+            user=user,
+            title=notification_title,
+            body=notification_body
+        )
+
+        # Notify other board members about the user's departure
+        other_memberships = BoardMembership.objects.filter(board=board).exclude(user=user)
+        for other_membership in other_memberships:
+            other_user = other_membership.user
+            notification_title = "Board Member Left"
+            notification_body = f"{user.username} has left the board '{board.name}'."
+            Notification.objects.create(
+                user=other_user,
+                title=notification_title,
+                body=notification_body
+            )
+
+            #  send a push notification if the user has a subscription
+            subscriptions = PushSubscription.objects.filter(user=other_user)
+            for subscription in subscriptions:
+                try:
+                    webpush(
+                        subscription_info=subscription.subscription_info,
+                        data=json.dumps({
+                            'type': 'USER_LEFT_BOARD',
+                            'title': notification_title,
+                            'body': notification_body,
+                            'boardName': board.name,
+                            'leftUserEmail': user.email,
+                            'leftUserName': user.username,
+                        }),
+                        vapid_private_key='4aMg0XhG2sXL0LAftafusC0jpOorGDb8efcyxsCNjvw',
+                        vapid_claims={
+                            'sub': 'mailto:mydailydoer@gmail.com'
+                        }
+                    )
+                except WebPushException as e:
+                    print(f"Web push failed: {e}")
+
+        return Response({'status': 'success', 'message': 'You have left the board and notifications have been sent.'})
+    except BoardMembership.DoesNotExist:
+        return Response({'error': 'You are not a member of this board.'}, status=404)
 
 
 
+# ============================== Update Board Background Image View ==============================
 
 
+class UpdateBoardBackgroundImageView(APIView):
+    def patch(self, request, pk):
+        try:
+            board = Board.objects.get(pk=pk)
+        except Board.DoesNotExist:
+            return Response({"error": "Board not found."}, status=status.HTTP_404_NOT_FOUND)
 
+        if 'background_image' not in request.data:
+            return Response({"error": "No background_image provided."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Delete the old background image from AWS S3 if it exists
+        if board.background_image:
+            board.background_image.delete(save=False)
 
+        # Update the background image with the new one
+        board.background_image = request.data['background_image']
+        board.save()
 
+        return Response({"message": "Background image updated successfully.", "background_image": board.background_image.url}, status=status.HTTP_200_OK)
+    # ============================== Delete Board Background Image View ==============================
 
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from .models import Board
 
+class DeleteBoardBackgroundImageView(APIView):
+    def delete(self, request, pk):
+        try:
+            board = Board.objects.get(pk=pk)
+        except Board.DoesNotExist:
+            return Response({"error": "Board not found."}, status=status.HTTP_404_NOT_FOUND)
 
+        if not board.background_image:
+            return Response({"error": "No background image to delete."}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Delete the file from AWS S3 or the configured storage backend
+        board.background_image.delete(save=False)
 
+        # Remove the reference from the database
+        board.background_image = None
+        board.save()
 
-
-
-
-
-
-
+        return Response({"message": "Background image deleted successfully."}, status=status.HTTP_200_OK)
 
 
 

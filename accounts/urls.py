@@ -3,7 +3,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import RegisterView, UserProfileView, CustomGoogleLogin , CustomConfirmEmailView \
     , CustomTokenObtainPairView ,ProfileFinishView , UserEmailListView , UpdateProfilePictureView \
     , PasswordResetView, PasswordResetConfirmView , UsernameANDPhoneNumberUpdateView ,AccountDeleteView \
-    , PasswordChangeView
+    , PasswordChangeView 
 
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
@@ -27,6 +27,7 @@ urlpatterns = [
     path('update-username-phone/', UsernameANDPhoneNumberUpdateView.as_view(), name='update_username_phone'),
     path('delete-account/', AccountDeleteView.as_view(), name='delete_account'),
     path('password-change/', PasswordChangeView.as_view(), name='password_change'),
+
 ]
 
 

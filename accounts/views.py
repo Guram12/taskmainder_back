@@ -5,7 +5,8 @@ from rest_framework import status
 from django.db.models import Q
 from .models import CustomUser
 from .serializers import RegisterSerializer, UserProfileSerializer , UserEmailSerializer \
-    , UpdateProfilePictureSerializer, UsernameANDPhoneNumberUpdateSerializer, PasswordChangeSerializer
+    , UpdateProfilePictureSerializer, UsernameANDPhoneNumberUpdateSerializer \
+    
 
 class RegisterView(generics.CreateAPIView):
     queryset = CustomUser.objects.all()
