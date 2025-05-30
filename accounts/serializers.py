@@ -118,26 +118,10 @@ class UpdateProfilePictureSerializer(serializers.ModelSerializer):
 
 # ===============================================================================================================
 
-
 class UsernameANDPhoneNumberUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = ['username', 'phone_number']
-
-
-# ==================================== password chagne ================================================
-
-from django.contrib.auth.password_validation import validate_password
-
-class PasswordChangeSerializer(serializers.Serializer):
-    old_password = serializers.CharField(write_only=True)
-    new_password = serializers.CharField(write_only=True, validators=[validate_password])
-
-    def validate_old_password(self, value):
-        user = self.context['request'].user
-        if not user.check_password(value):
-            raise serializers.ValidationError("Old password is incorrect.")
-        return value
 
 
 
