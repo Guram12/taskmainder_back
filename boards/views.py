@@ -511,8 +511,23 @@ class DeleteBoardBackgroundImageView(APIView):
         return Response({"message": "Background image deleted successfully."}, status=status.HTTP_200_OK)
 
 
+# ================================================ get user boards with status ==========================================
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_boards_with_status(request):
+    user = request.user
+    memberships = BoardMembership.objects.filter(user=user).select_related('board')
+    data = [
+        {
+            'board_id': membership.board.id,
+            'board_name': membership.board.name,
+            'user_status': membership.user_status,
+        }
+        for membership in memberships
+    ]
+    return Response(data)
 
 
 
