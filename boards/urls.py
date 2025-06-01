@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import BoardViewSet, ListViewSet, TaskViewSet , delete_user_from_board, get_board_users \
     , SendInvitationEmailView, AcceptInvitationView , save_subscription, get_notifications \
     , mark_all_notifications_as_read, delete_notification , delete_all_notifications, self_delete_from_board \
-    , UpdateBoardBackgroundImageView , DeleteBoardBackgroundImageView
+    , UpdateBoardBackgroundImageView , DeleteBoardBackgroundImageView , get_user_boards_with_status
 
 router = DefaultRouter()
 router.register(r'boards', BoardViewSet)
@@ -37,9 +37,9 @@ urlpatterns = [
     path('boards/<int:pk>/update-background-image/', UpdateBoardBackgroundImageView.as_view(), name='update-board-background-image'),
     path('boards/<int:pk>/delete-background-image/', DeleteBoardBackgroundImageView.as_view(), name='delete-board-background-image'),
 
+    path('user-boards-status/', get_user_boards_with_status, name='user_boards_status'),
 
 ]
-
 
 
 
