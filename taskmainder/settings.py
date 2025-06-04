@@ -397,7 +397,14 @@ CELERY_TIMEZONE = 'UTC'
 
 
 
+from celery.schedules import crontab
 
+CELERY_BEAT_SCHEDULE = {
+    'daily-db-dump': {
+        'task': 'boards.tasks.daily_db_dump',  # Adjust if your task is in a different app
+        'schedule': crontab(hour=2, minute=0),  # Every day at 2:00 AM UTC
+    },
+}
 
 
 

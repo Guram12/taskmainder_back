@@ -56,3 +56,30 @@ def send_task_due_email(task_id ,email, username, task_name, due_date ,priority)
 
 # Celery Beat Logs (if applicable):
 # docker logs -f celery_beat
+
+
+# ====================================================================
+from celery import shared_task
+import os
+from datetime import datetime
+from django.core.management import call_command
+
+
+
+@shared_task
+def daily_db_dump():
+    backup_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'backup_data'))
+    os.makedirs(backup_dir, exist_ok=True)
+    filename = f"db_dump_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json"
+    filepath = os.path.join(backup_dir, filename)
+    with open(filepath, 'w') as f:
+        call_command('dumpdata', '--natural-foreign', '--natural-primary', '--indent', '2', stdout=f)
+
+
+
+
+
+
+
+
+
