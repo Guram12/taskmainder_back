@@ -350,13 +350,9 @@ def save_subscription(request):
         data = json.loads(request.body)
         user = request.user  # Authenticated user
 
-        # Ensure only one subscription exists for the user
-        PushSubscription.objects.filter(user=user).delete()
-
-        # Create or update the subscription
-        PushSubscription.objects.create(
+        PushSubscription.objects.update_or_create(
             user=user,
-            subscription_info=data
+            defaults={'subscription_info': data}
         )
         return JsonResponse({'message': 'Subscription saved successfully!'})
 
