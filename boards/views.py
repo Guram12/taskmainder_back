@@ -527,3 +527,39 @@ def get_user_boards_with_status(request):
 
 
 
+# ===================================== template  create viewset    =====================================
+from rest_framework.parsers import MultiPartParser, FormParser
+
+
+class CreateBoardFromTemplateView(APIView):
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        name = request.data.get("name")
+        background_image = request.FILES.get("background_image")
+        lists = request.data.get("lists")
+        import json
+        lists = json.loads(lists) if lists else []
+
+        board = Board.objects.create(name=name, background_image=background_image)
+        BoardMembership.objects.create(
+            board=board,
+            user=request.user,
+            user_status='owner',
+            is_invitation_accepted=True
+        )
+        print(f'Creating board with name: {name} and background image: {background_image}')
+        for list_data in lists:
+            list_obj = List.objects.create(name=list_data["name"], board=board)
+            for task_data in list_data.get("tasks", []):
+                Task.objects.create(
+                    title=task_data["title"],
+                    description=task_data.get("description", ""),
+                    due_date=task_data.get("due_date"),
+                    list=list_obj,
+                    priority=task_data.get("priority"),
+                )
+
+        serializer = BoardSerializer(board)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
