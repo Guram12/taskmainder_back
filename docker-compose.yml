@@ -15,9 +15,9 @@ services:
     environment:
       - CELERY_BROKER_URL=redis://redis:6379/0
       - DB_NAME=postgres
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
-      - DB_HOST=taskmainder-db.c1uwk8ue8hvv.eu-central-1.rds.amazonaws.com
+      - DB_USER=shikaka12
+      - DB_PASSWORD=shikaka12.password
+      - DB_HOST=taskmainder-main-database.c1uwk8ue8hvv.eu-central-1.rds.amazonaws.com
       - DB_PORT=5432
 
   redis:
