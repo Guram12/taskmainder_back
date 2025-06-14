@@ -315,6 +315,7 @@ class UpdateProfilePictureView(APIView):
 
 # ===============================================================================================================
 
+from boards.models import BoardMembership, Board  
 
 class AccountDeleteView(APIView):
     permission_classes = [IsAuthenticated]  # Ensure the user is authenticated via token
@@ -322,10 +323,12 @@ class AccountDeleteView(APIView):
     def delete(self, request, *args, **kwargs):
         user = request.user
 
-        # Delete the user account
+        owner_memberships = BoardMembership.objects.filter(user=user, user_status='owner')
+        board_ids = owner_memberships.values_list('board_id', flat=True)
+        Board.objects.filter(id__in=board_ids).delete()
+
         user.delete()
-        return Response({"message": "Account deleted successfully."}, status=status.HTTP_200_OK)
-    
+        return Response({"message": "Account and owned boards deleted successfully."}, status=status.HTTP_200_OK)
 
 
 # ============================================   password  change view =========================================
