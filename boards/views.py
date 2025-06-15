@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from accounts.models import CustomUser
 from rest_framework.decorators import api_view
 from rest_framework.decorators import permission_classes
+# import redirect 
 
 
 class BoardViewSet(viewsets.ModelViewSet):
@@ -254,7 +255,7 @@ class AcceptInvitationView(APIView):
             return redirect(f'{settings.FRONTEND_URL}?isAuthenticated=true')
 
         except Exception as e:
-            return Response({'error': 'Invalid or expired token'}, status=400)
+            return redirect(f'{settings.FRONTEND_URL}?isAuthenticated=false&invitation=error')
 
 # ================================================  get user notifications ==========================================
 
