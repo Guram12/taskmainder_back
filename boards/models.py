@@ -80,7 +80,7 @@ class List(models.Model):
 # ===============================================================================================
 
 class Task(models.Model):
-    title = models.CharField(max_length=255)
+    title = models.CharField(max_length=1000)
     description = models.TextField(blank=True, null=True)
     list = models.ForeignKey(List, related_name='tasks', on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
