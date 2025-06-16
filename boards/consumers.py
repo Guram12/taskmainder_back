@@ -26,16 +26,6 @@ class BoardConsumer(AsyncWebsocketConsumer):
 
         await self.accept()
 
-        # when user connects, send the full board state
-        # This is a placeholder for the actual logic to fetch the board state
-        board = await sync_to_async(Board.objects.get)(id=self.board_id)
-        board_data = await sync_to_async(lambda: BoardSerializer(board).data)()
-
-        # print('Sending full board state:::', board_data)
-        await self.send(text_data=json.dumps({
-            'action': 'full_board_state',
-            'payload': board_data,
-        }))
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(
@@ -122,7 +112,7 @@ class BoardConsumer(AsyncWebsocketConsumer):
         user_timezone = payload.get('user_timezone', 'UTC')  # Get user's timezone from payload
         task_associated_users_id = payload.get('task_associated_users_id', [])
         priority = payload.get('priority', None)
-
+        print("pr===>>>", payload.get('priority'))
 
         print('Updating task:', task_id, updated_title, updated_due_date, updated_description, completed, priority)
 
@@ -150,7 +140,8 @@ class BoardConsumer(AsyncWebsocketConsumer):
 
             if completed is not None:
                 task.completed = completed
-            if priority is not None:
+
+            if 'priority' in payload:
                 task.priority = priority
 
             if task_associated_users_id is not None:
