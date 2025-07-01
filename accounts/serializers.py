@@ -99,13 +99,28 @@ class UserProfileSerializer(serializers.ModelSerializer):
         model = CustomUser
         fields = ('id','email', 'username', 'phone_number', 'profile_picture' , 'timezone', 'is_email_verified', 'is_social_account')
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if data.get('timezone', '').lower() == "asia/tbilisi":
+            data['timezone'] = "Europe/Tbilisi"
+        return data
 
 
 class ProfileFinishSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ( 'username' , 'phone_number','timezone')
+        fields = ('username', 'phone_number', 'timezone')
 
+    def validate_timezone(self, value):
+        if value.lower() == "europe/tbilisi":
+            return "Asia/Tbilisi"
+        return value
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if data.get('timezone', '').lower() == "asia/tbilisi":
+            data['timezone'] = "Europe/Tbilisi"
+        return data
 
 class UserEmailSerializer(serializers.ModelSerializer):
     class Meta:
@@ -125,12 +140,18 @@ class UpdateProfilePictureSerializer(serializers.ModelSerializer):
 class UsernameANDPhoneNumberUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ['username', 'phone_number']
+        fields = ['username', 'phone_number', 'timezone']
 
+    def validate_timezone(self, value):
+        if value.lower() == "europe/tbilisi":
+            return "Asia/Tbilisi"
+        return value
 
-
-
-
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if data.get('timezone', '').lower() == "asia/tbilisi":
+            data['timezone'] = "Europe/Tbilisi"
+        return data
 
 
 
