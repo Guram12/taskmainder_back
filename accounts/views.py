@@ -229,6 +229,11 @@ class PasswordResetView(APIView):
 
         try:
             user = CustomUser.objects.get(email=email)
+            if user.is_social_account:
+                return Response(
+                    {'error': 'This email is associated with Google sign up. Please use Google login.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             token = default_token_generator.make_token(user)
             uid = urlsafe_base64_encode(force_str(user.pk).encode('utf-8'))
 
@@ -244,7 +249,8 @@ class PasswordResetView(APIView):
 
         except CustomUser.DoesNotExist:
             return Response({'error': 'User with this email does not exist.'}, status=status.HTTP_404_NOT_FOUND)
-
+        
+        
 # ========================================  password reset confirm view =========================================
 
 class PasswordResetConfirmView(APIView):
