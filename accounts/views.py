@@ -355,3 +355,19 @@ class PasswordChangeView(APIView):
 
         return Response({"message": "Password changed successfully."}, status=status.HTTP_200_OK)
 
+# ==========================================  check if  password is correct ===========================================
+
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
+class CheckPasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        password = request.data.get('old_password')
+        if not password:
+            return Response({'detail': 'Password is required.'}, status=400)
+        user = request.user
+        is_correct = user.check_password(password)
+        return Response({'is_correct': is_correct})
