@@ -36,10 +36,12 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
     'https://taskmainder-front-svba.vercel.app',
     'https://shemaxsene.space', 
+    'https://www.shemaxsene.space',  
     'http://api.shemaxsene.space',
 ]
 
 CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_CREDENTIALS = True
 
 
 
@@ -49,6 +51,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://api.shemaxsene.space',
     'https://shemaxsene.space',
     'http://localhost:8000',
+    'https://www.shemaxsene.space',
     'http://127.0.0.1:8000',
 ]
 
