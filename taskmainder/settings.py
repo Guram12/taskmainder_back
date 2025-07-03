@@ -332,8 +332,12 @@ ACCOUNT_CONFIRM_EMAIL_ON_GET = True
 ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS = 3
 
 
-BACKEND_URL = "http://localhost:8000"  
-FRONTEND_URL = 'http://localhost:5173'
+# BACKEND_URL = "http://localhost:8000"  
+# FRONTEND_URL = 'http://localhost:5173'
+
+BACKEND_URL = "https://api.shemaxsene.space"
+FRONTEND_URL = 'https://shemaxsene.space'
+
 
 ACCOUNT_EMAIL_CONFIRMATION_HTML_EMAIL = True
 
