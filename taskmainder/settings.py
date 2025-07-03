@@ -41,6 +41,27 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_ALL_ORIGINS = False
 
+
+
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://api.shemaxsene.space',
+    'http://api.shemaxsene.space',
+    'https://shemaxsene.space',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+]
+
+
+# Security settings for HTTPS
+SECURE_SSL_REDIRECT = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+
+
+
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.sites',
