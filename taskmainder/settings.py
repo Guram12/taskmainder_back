@@ -35,6 +35,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     'https://taskmainder-front-svba.vercel.app',
+    'https://shemaxsene.space', 
+    'http://api.shemaxsene.space',
 ]
 
 CORS_ALLOW_ALL_ORIGINS = False
@@ -398,14 +400,14 @@ CELERY_TIMEZONE = 'UTC'
 
 
 
-from celery.schedules import crontab
+# from celery.schedules import crontab
 
-CELERY_BEAT_SCHEDULE = {
-    'daily-db-dump': {
-        'task': 'boards.tasks.daily_db_dump',  # Adjust if your task is in a different app
-        'schedule': crontab(hour=2, minute=0),  # Every day at 2:00 AM UTC
-    },
-}
+# CELERY_BEAT_SCHEDULE = {
+#     'daily-db-dump': {
+#         'task': 'boards.tasks.daily_db_dump',  # Adjust if your task is in a different app
+#         'schedule': crontab(hour=2, minute=0),  # Every day at 2:00 AM UTC
+#     },
+# }
 
 
 
