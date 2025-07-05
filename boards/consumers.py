@@ -50,6 +50,8 @@ class BoardConsumer(AsyncWebsocketConsumer):
             await self.add_list(payload)
         elif action == 'delete_list':
             await self.delete_list(payload)
+        elif action == 'reorder_lists':
+            await self.reorder_lists(payload)
         elif action == 'edit_list_name':
             await self.edit_list_name(payload)
         elif action == 'add_task':
@@ -60,7 +62,7 @@ class BoardConsumer(AsyncWebsocketConsumer):
             await self.update_task(payload)
         elif action == 'reorder_task':
             await self.reorder_task(payload)
-            
+        
         elif action == 'update_board_name': 
             await self.update_board_name(payload)
         elif action == 'delete_board':
@@ -354,6 +356,45 @@ class BoardConsumer(AsyncWebsocketConsumer):
             )
         except List.DoesNotExist:
             print('List does not exist:', list_id)
+
+    async def reorder_lists(self, payload):
+        board_id = payload['board_id']
+        list_order = payload['list_order']
+        print(f"Reordering lists in board {board_id}: {list_order}")
+
+        try:
+            board = await Board.objects.aget(id=board_id)
+            lists = await sync_to_async(list)(board.lists.all())
+
+            # Update the order of lists
+            for index, list_id in enumerate(list_order):
+                list_obj = next((l for l in lists if l.id == list_id), None)
+                if list_obj:
+                    list_obj.order = index
+                    await sync_to_async(list_obj.save)()
+
+            # Refresh the lists to get updated order values
+            updated_lists = await sync_to_async(list)(board.lists.all().order_by('order'))
+            
+            # Print updated order values after reordering
+            print("Current list order values AFTER reordering:")
+            for lst in updated_lists:
+                print(f"  List ID: {lst.id}, Name: '{lst.name}', Order: {lst.order}")
+
+
+            # Notify all clients about the updated order
+            await self.channel_layer.group_send(
+                self.board_group_name,
+                {
+                    'type': 'board_message',
+                    'action': 'reorder_lists',
+                    'payload': {'board_id': board_id, 'list_order': list_order},
+                }
+            )
+        except Board.DoesNotExist:
+            print(f"Board {board_id} does not exist.")
+        except Exception as e:
+            print(f"Error reordering lists: {e}")
 
 # =============================================  Board Methods =============================================
 
