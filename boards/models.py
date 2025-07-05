@@ -71,6 +71,8 @@ class List(models.Model):
     name= models.CharField(max_length=255)
     board = models.ForeignKey(Board, related_name='lists', on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
+    order = models.IntegerField(default=0) 
+
 
     def __str__(self):
         return self.name
