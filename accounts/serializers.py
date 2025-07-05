@@ -142,10 +142,6 @@ class UsernameANDPhoneNumberUpdateSerializer(serializers.ModelSerializer):
         model = CustomUser
         fields = ['username', 'phone_number', 'timezone']
 
-    def validate_timezone(self, value):
-        if value.lower() == "europe/tbilisi":
-            return "Asia/Tbilisi"
-        return value
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
