@@ -27,18 +27,25 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-30m!h0d%g18q%5im1-#6lv71scb@$2g@*wlk1*az7-%$0_20l7'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ['*']
+if DEBUG:
+    ALLOWED_HOSTS = ['*']
+else:
+    ALLOWED_HOSTS = ['www.dailydoer.space', 'api.dailydoer.space', 'dailydoer.space']
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     'https://taskmainder-front-svba.vercel.app',
-    'https://shemaxsene.space', 
-    'https://www.shemaxsene.space',  
-    'http://api.shemaxsene.space',
+    'https://www.dailydoer.space',
+    'http://www.dailydoer.space',
+    'https://api.dailydoer.space',
+    'http://api.dailydoer.space',
+    'https://dailydoer.space',
+    'http://dailydoer.space',
 ]
+
 
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
@@ -47,20 +54,26 @@ CORS_ALLOW_CREDENTIALS = True
 
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://api.shemaxsene.space',
-    'http://api.shemaxsene.space',
-    'https://shemaxsene.space',
+    'https://api.dailydoer.space',
+    'http://api.dailydoer.space',
+    'https://dailydoer.space',
     'http://localhost:8000',
-    'https://www.shemaxsene.space',
+    'https://www.dailydoer.space',
     'http://127.0.0.1:8000',
 ]
 
 
 # Security settings for HTTPS
-SECURE_SSL_REDIRECT = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SECURE_BROWSER_XSS_FILTER = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
+
+# In your Django settings.py for development
+if DEBUG:
+    SECURE_SSL_REDIRECT = False
+
+else:
+    SECURE_SSL_REDIRECT = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
 
 
 
