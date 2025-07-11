@@ -347,12 +347,12 @@ ACCOUNT_AUTHENTICATION_METHOD = 'email'
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True
 ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS = 3
 
-
-# BACKEND_URL = "http://localhost:8000"  
-# FRONTEND_URL = 'http://localhost:5173'
-
-BACKEND_URL = "https://api.shemaxsene.space"
-FRONTEND_URL = 'https://shemaxsene.space'
+if DEBUG:
+    BACKEND_URL = "http://localhost:8000"  
+    FRONTEND_URL = 'http://localhost:5173'
+else:
+    BACKEND_URL = "https://api.dailydoer.space"
+    FRONTEND_URL = 'https://dailydoer.space'
 
 
 ACCOUNT_EMAIL_CONFIRMATION_HTML_EMAIL = True
@@ -450,7 +450,8 @@ CELERY_TIMEZONE = 'UTC'
 #     },
 # }
 
-
+# VITE_GOOGLE_CLIENT_ID=599936364062-nabbm6v70efp78mum4uir2s3ksujkpi3.apps.googleusercontent.com
+# VITE_GTAG_ID=G-PV0TM1V0RL
 
 
 
