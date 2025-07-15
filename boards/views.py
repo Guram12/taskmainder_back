@@ -560,6 +560,7 @@ class CreateBoardFromTemplateView(APIView):
                     due_date=task_data.get("due_date"),
                     list=list_obj,
                     priority=task_data.get("priority"),
+                    order=task_data.get("order", 0)
                 )
 
         serializer = BoardSerializer(board)

@@ -72,6 +72,7 @@ class BoardConsumer(AsyncWebsocketConsumer):
     async def add_task(self, payload):
         task_title = payload['title']
         list_id = payload['list']
+        order = payload.get('order', 0)  # Default order is 0 if not provided
         print('Adding task:', task_title, list_id)
         try:
             # Fetch the list to which the task will be added
@@ -80,7 +81,8 @@ class BoardConsumer(AsyncWebsocketConsumer):
             new_task = await sync_to_async(task_list.tasks.create)(
                 title=task_title,
                 description=payload.get('description', ''),
-                due_date=payload.get('due_date', None)
+                due_date=payload.get('due_date', None),
+                order=order
             )
 
             # Notify all clients in the board group about the new task
@@ -97,6 +99,7 @@ class BoardConsumer(AsyncWebsocketConsumer):
                         'created_at': new_task.created_at.isoformat(),
                         'due_date': new_task.due_date.isoformat() if new_task.due_date else None,
                         'completed': new_task.completed,
+                        'order': new_task.order
 
                     }
                 }
@@ -163,7 +166,6 @@ class BoardConsumer(AsyncWebsocketConsumer):
             # Save the updated task
             await task.asave()
 
-            # Notify all clients in the board group about the updated task
             await self.channel_layer.group_send(
                 self.board_group_name,
                 {

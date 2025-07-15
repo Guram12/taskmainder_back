@@ -17,10 +17,16 @@ class BoardAdmin(admin.ModelAdmin):
     readonly_fields = ('created_at',)  # Make the created_at field read-only
     fields = ('name', 'background_image', 'created_at')  # Specify fields to display in the admin form
 
+class TaskAdmin(admin.ModelAdmin):
+    list_display = ('title', 'list', 'order', 'created_at', 'due_date', 'completed', 'priority')
+    search_fields = ('title',)
+    list_filter = ('completed', 'priority', 'list')
+
+
 admin.site.register(Board, BoardAdmin)
 admin.site.register(BoardMembership, BoardMembershipAdmin)
 admin.site.register(List)
-admin.site.register(Task)
+admin.site.register(Task, TaskAdmin)
 admin.site.register(BoardInvitation)
 admin.site.register(Notification)
 admin.site.register(PushSubscription)
