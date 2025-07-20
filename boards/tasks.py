@@ -1,8 +1,8 @@
 from celery import shared_task
 from .sendemail import send_due_date_email_to_user
+from .send_discord import send_discord_notification
 from logging import getLogger
 from accounts.models import CustomUser
-
 
 logger = getLogger(__name__)
 
@@ -22,24 +22,25 @@ def send_task_due_email(task_id ,email, username, task_name, due_date ,priority)
         from .models import Task
         
         task_exists = Task.objects.filter(id=task_id).exists()
-        print(f"Task exists--------------->>>>>>>>>>: {task_exists}")
         if not task_exists:
-            logger.info(f"Task with ID '{task_id}' no longer exists. Skipping email.")
-            return 
+            logger.info(f"Task with ID '{task_id}' no longer exists. Skipping notification.")
+            return
 
-        # Fetch the user's timezone from the database
         user = CustomUser.objects.filter(email=email).first()
         if user and user.timezone:
-            logger.info(f"User timezone: {user.timezone}")
-            user_timezone = user.timezone  # Use the user's specific timezone
+            user_timezone = user.timezone
         else:
-            user_timezone = 'UTC'  # Fallback to UTC if no timezone is set
+            user_timezone = 'UTC'
 
-        # Pass the user's timezone to the email function
-        send_due_date_email_to_user(email, username, task_name, due_date, user_timezone, priority)
+        # Check notification preference
+        preference = getattr(user, 'notification_preference', 'email')
+        if preference in ['email', 'both']:
+            send_due_date_email_to_user(email, username, task_name, due_date, user_timezone, priority)
+        if preference in ['discord', 'both'] and user.discord_webhook_url:
+            message = f"⏰ Reminder: Task '{task_name}' is due on {due_date} (priority: {priority})"
+            send_discord_notification(user.discord_webhook_url, message)
     except Exception as e:
-        logger.error(f"ERROR sending email: {e}")
-
+        logger.error(f"ERROR sending notification: {e}")
 # ====================================================================
 
 # Django App Logs:

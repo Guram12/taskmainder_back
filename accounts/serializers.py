@@ -97,7 +97,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ('id','email', 'username', 'phone_number', 'profile_picture' , 'timezone', 'is_email_verified', 'is_social_account')
+        fields = ('id','email', 'username', 'phone_number', 'profile_picture' , 'timezone', 'is_email_verified', 'is_social_account','discord_webhook_url', 'notification_preference')
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -127,7 +127,15 @@ class UserEmailSerializer(serializers.ModelSerializer):
         model = CustomUser
         fields = ['email']
 
+class NotificationPreferenceOnlySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ['notification_preference']
 
+class DiscordWebhookURLOnlySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ['discord_webhook_url']
 # =========================================== Update Profile Picture ===========================================
 
 class UpdateProfilePictureSerializer(serializers.ModelSerializer):

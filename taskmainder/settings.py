@@ -51,7 +51,7 @@ CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 
 
-
+# https://discord.com/api/webhooks/1396471759263236236/prup1mvWM85rdkkKm0lq4kOCRG6bAsvvkq_jkqKlRd6zki7y5Mzheycr9ePfvIxQN8q2
 
 CSRF_TRUSTED_ORIGINS = [
     'https://api.dailydoer.space',
