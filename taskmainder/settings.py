@@ -27,7 +27,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-30m!h0d%g18q%5im1-#6lv71scb@$2g@*wlk1*az7-%$0_20l7'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 if DEBUG:
     ALLOWED_HOSTS = ['*']
@@ -51,7 +51,7 @@ CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 
 
-
+# https://discord.com/api/webhooks/1396471759263236236/prup1mvWM85rdkkKm0lq4kOCRG6bAsvvkq_jkqKlRd6zki7y5Mzheycr9ePfvIxQN8q2
 
 CSRF_TRUSTED_ORIGINS = [
     'https://api.dailydoer.space',

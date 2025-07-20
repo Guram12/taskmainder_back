@@ -3,7 +3,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import RegisterView, UserProfileView, CustomGoogleLogin , CustomConfirmEmailView \
     , CustomTokenObtainPairView ,ProfileFinishView , UserEmailListView , UpdateProfilePictureView \
     , PasswordResetView, PasswordResetConfirmView , UsernameANDPhoneNumberUpdateView ,AccountDeleteView \
-    , PasswordChangeView , CheckPasswordView
+    , PasswordChangeView , CheckPasswordView , NotificationPreferenceUpdateView, DiscordWebhookURLUpdateView
 
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
@@ -30,6 +30,8 @@ urlpatterns = [
     path('delete-account/', AccountDeleteView.as_view(), name='delete_account'),
     path('password-change/', PasswordChangeView.as_view(), name='password_change'),
 
+    path('notification-preference/', NotificationPreferenceUpdateView.as_view(), name='notification_preference_update'),
+    path('discord-webhook-url/', DiscordWebhookURLUpdateView.as_view(), name='discord_webhook_url_update'),
 ]
 
 

@@ -6,7 +6,7 @@ from django.db.models import Q
 from .models import CustomUser
 from .serializers import RegisterSerializer, UserProfileSerializer , UserEmailSerializer \
     , UpdateProfilePictureSerializer, UsernameANDPhoneNumberUpdateSerializer \
-    
+    , NotificationPreferenceOnlySerializer , DiscordWebhookURLOnlySerializer
 
 class RegisterView(generics.CreateAPIView):
     queryset = CustomUser.objects.all()
@@ -371,3 +371,34 @@ class CheckPasswordView(APIView):
         user = request.user
         is_correct = user.check_password(password)
         return Response({'is_correct': is_correct})
+
+
+
+
+class NotificationPreferenceUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request, *args, **kwargs):
+        serializer = NotificationPreferenceOnlySerializer(request.user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+class DiscordWebhookURLUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request, *args, **kwargs):
+        user = request.user
+        serializer = DiscordWebhookURLOnlySerializer(user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        webhook_url = serializer.validated_data.get('discord_webhook_url', None)
+
+        # If webhook URL is being deleted (set to empty or None), set notification_preference to 'email'
+        if webhook_url in [None, '', 'null']:
+            user.discord_webhook_url = None
+            user.notification_preference = 'email'
+            user.save()
+            return Response({'discord_webhook_url': None, 'notification_preference': 'email'})
+        else:
+            serializer.save()
+            return Response(serializer.data)
