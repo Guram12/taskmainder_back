@@ -3,6 +3,7 @@ from .sendemail import send_due_date_email_to_user
 from .send_discord import send_discord_notification
 from logging import getLogger
 from accounts.models import CustomUser
+import dateutil.parser  # Add this import at the top
 
 logger = getLogger(__name__)
 
@@ -37,8 +38,15 @@ def send_task_due_email(task_id ,email, username, task_name, due_date ,priority)
         if preference in ['email', 'both']:
             send_due_date_email_to_user(email, username, task_name, due_date, user_timezone, priority)
         if preference in ['discord', 'both'] and user.discord_webhook_url:
-            message = f"⏰ Reminder: Task '{task_name}' is due on {due_date} (priority: {priority})"
+           
+            try:
+                dt = dateutil.parser.isoparse(due_date)
+                formatted_due_date = dt.strftime('%B %d, %Y at %H:%M %Z')
+            except Exception:
+                formatted_due_date = due_date  # fallback to original if parsing fails
+            message = f"⏰ Reminder: Task '{task_name}' is due on {formatted_due_date} (priority: {priority})"
             send_discord_notification(user.discord_webhook_url, message)
+
     except Exception as e:
         logger.error(f"ERROR sending notification: {e}")
 # ====================================================================
