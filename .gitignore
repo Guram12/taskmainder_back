@@ -130,3 +130,5 @@ dmypy.json
 boards/migrations
 t.py
 .devcontainer
+boards/test_discord_notification.py
+.test_discord_notification.py
