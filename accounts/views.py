@@ -242,7 +242,7 @@ class PasswordResetView(APIView):
 
             # Use the new Brevo function to send the email
             try:
-                send_password_reset_email(email, reset_link)
+                send_password_reset_email(email, reset_link, user.username)
                 return Response({'message': 'Password reset link has been sent to your email.'}, status=status.HTTP_200_OK)
             except Exception as e:
                 return Response({'error': f'Failed to send email: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

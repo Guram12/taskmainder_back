@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from allauth.account.utils import send_email_confirmation
 from .models import CustomUser
-from django.conf import settings
 from sib_api_v3_sdk import TransactionalEmailsApi, SendSmtpEmail
 from sib_api_v3_sdk.rest import ApiException
 from decouple import config
@@ -10,7 +9,12 @@ import sib_api_v3_sdk
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
-from allauth.account.models import EmailConfirmationHMAC
+from boards.sendemail import send_email_confirmation
+
+
+
+
+
 
 
 logger = getLogger(__name__)
@@ -51,45 +55,13 @@ class RegisterSerializer(serializers.ModelSerializer):
 
         # Send email confirmation using Brevo
         try:
-            self.send_email_confirmation(email_address)
+            send_email_confirmation(email_address)
             logger.info(f"Email confirmation sent to {user.email}")
         except Exception as e:
             logger.error(f"Failed to send email confirmation: {e}")
             raise serializers.ValidationError("Failed to send email confirmation. Please try again later.")
 
         return user
-
-    def send_email_confirmation(self, email_address):
-        """
-        Sends an email confirmation using Brevo.
-        """
-        configuration = sib_api_v3_sdk.Configuration()
-        configuration.api_key['api-key'] = config('BREVO_API_KEY')
-
-        api_instance = TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(configuration))
-
-        # Generate the confirmation key
-        confirmation = EmailConfirmationHMAC(email_address)
-        confirmation_key = confirmation.key
-
-        # Define the email content
-        send_smtp_email = SendSmtpEmail(
-            sender={"email": "guramshanidze44@gmail.com", "name": "Task Reminder"},  # Verified sender email
-            to=[{"email": email_address.email}],
-            template_id=4,  # Replace with your Brevo email confirmation template ID
-            params={
-                "username": email_address.user.username,
-                "confirmation_link": f"{settings.BACKEND_URL}/acc/confirm-email/{confirmation_key}/",  # Use the generated key
-            },
-            headers={"X-Mailin-Tag": "email_confirmation"}
-        )
-
-        try:
-            response = api_instance.send_transac_email(send_smtp_email)
-            logger.info(f"Email confirmation sent to {email_address.email}. Brevo response: {response}")
-        except ApiException as e:
-            logger.error(f"Error sending email confirmation: {e}")
-            raise Exception("Failed to send email confirmation.")
 
 
 # ======================================= user profile serializer  =================================================

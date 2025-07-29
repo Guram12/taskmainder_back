@@ -7,6 +7,10 @@ from datetime import datetime
 import pytz
 from pywebpush import webpush, WebPushException
 import json
+from allauth.account.models import EmailConfirmationHMAC
+from django.conf import settings
+
+
 
 logger = getLogger(__name__)
 
@@ -44,7 +48,7 @@ def send_due_date_email_to_user(email, username, task_name, due_date, user_timez
     elif priority == 'red':
         updated_priority = 'High'
     else:
-        updated_priority = 'no'
+        updated_priority = 'Without Priority'
 
     configuration = sib_api_v3_sdk.Configuration()
     configuration.api_key['api-key'] = config('BREVO_API_KEY')
@@ -54,7 +58,7 @@ def send_due_date_email_to_user(email, username, task_name, due_date, user_timez
 
     # Define the email content
     send_smtp_email = SendSmtpEmail(
-        sender={"email": "guramshanidze44@gmail.com", "name": "Task Reminder"},  # Verified sender email
+        sender={"email": "dailydoerspace@gmail.com", "name": "DailyDoer"},  # Verified sender email
         to=[{"email": f"{email}"}],
         template_id=2,
         params={
@@ -121,21 +125,10 @@ def send_due_date_email_to_user(email, username, task_name, due_date, user_timez
 
 
 
-# from boards.sendemail import send_due_date_email_to_user
-# send_due_date_email_to_user('guramshanidze44@gmail.com', 'Test -3- Task', '2025-05-09T12:30:00+00:00')
-
-
-# -----------------------------
-# guram.shanidze.33@gmail.com
-# guramshanidze44@gmail.com
-# ninomarishanidze@gmail.com
-
-
-
 # ===========================================  password reset email sending ===========================================
 
 
-def send_password_reset_email(email, reset_link):
+def send_password_reset_email(email, reset_link, username):
     """
     Sends a password reset email using Brevo.
     """
@@ -149,12 +142,14 @@ def send_password_reset_email(email, reset_link):
 
     # Define the email content
     send_smtp_email = SendSmtpEmail(
-        sender={"email": "guramshanidze44@gmail.com", "name": "Task Reminder"},  # Verified sender email
+        sender={"email": "dailydoerspace@gmail.com", "name": "DailyDoer"},  # Verified sender email
         to=[{"email": f"{email}"}],
         template_id=3,  # Use a dedicated template ID for password reset emails
         params={
-            "reset_link": reset_link,  # Pass the reset link to the template
-            "user_email": email,  # Include the user's email in the template
+            "reset_link": reset_link,  
+            "user_email": email,  
+            "username": username,  
+
         },
         headers={"X-Mailin-Tag": "password_reset"}
     )
@@ -189,7 +184,7 @@ def send_board_invitation_email(email, username, board_name, invitation_link):
 
     # Define the email content
     send_smtp_email = SendSmtpEmail(
-        sender={"email": "guramshanidze44@gmail.com", "name": "Task Reminder"}, 
+        sender={"email": "dailydoerspace@gmail.com", "name": "dailydoer"},  
         to=[{"email": f"{email}"}],
         template_id=5, 
         params={
@@ -207,6 +202,58 @@ def send_board_invitation_email(email, username, board_name, invitation_link):
     except Exception as e:
         logger.error(f"Error sending board invitation email: {e}")
 
+# ===========================================  send email confirmation link  ===========================================
 
 
+
+def send_email_confirmation(self, email_address):
+    """
+    Sends an email confirmation using Brevo.
+    """
+    configuration = sib_api_v3_sdk.Configuration()
+    configuration.api_key['api-key'] = config('BREVO_API_KEY')
+
+    api_instance = TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(configuration))
+
+    # Generate the confirmation key
+    confirmation = EmailConfirmationHMAC(email_address)
+    confirmation_key = confirmation.key
+
+    # Define the email content
+    send_smtp_email = SendSmtpEmail(
+    sender={"email": "dailydoerspace@gmail.com", "name": "dailydoer"},  
+        to=[{"email": email_address.email}],
+        template_id=4,  # Replace with your Brevo email confirmation template ID
+        params={
+            "username": email_address.user.username,
+            "confirmation_link": f"{settings.BACKEND_URL}/acc/confirm-email/{confirmation_key}/",  # Use the generated key
+        },
+        headers={"X-Mailin-Tag": "email_confirmation"}
+    )
+
+    try:
+        response = api_instance.send_transac_email(send_smtp_email)
+        logger.info(f"Email confirmation sent to {email_address.email}. Brevo response: {response}")
+    except ApiException as e:
+        logger.error(f"Error sending email confirmation: {e}")
+        raise Exception("Failed to send email confirmation.")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# F5F5F5
     

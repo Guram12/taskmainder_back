@@ -27,7 +27,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-30m!h0d%g18q%5im1-#6lv71scb@$2g@*wlk1*az7-%$0_20l7'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 if DEBUG:
     ALLOWED_HOSTS = ['*']
@@ -338,7 +338,7 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = config('BREVO_EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('BREVO_EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL = 'guramshanidze44@gmail.com'
+DEFAULT_FROM_EMAIL = 'dailydoerspace@gmail.com'
 
 ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
 ACCOUNT_EMAIL_REQUIRED = True
