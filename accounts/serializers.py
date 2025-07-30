@@ -59,6 +59,8 @@ class RegisterSerializer(serializers.ModelSerializer):
             logger.info(f"Email confirmation sent to {user.email}")
         except Exception as e:
             logger.error(f"Failed to send email confirmation: {e}")
+            email_address.delete()
+            user.delete()
             raise serializers.ValidationError("Failed to send email confirmation. Please try again later.")
 
         return user
