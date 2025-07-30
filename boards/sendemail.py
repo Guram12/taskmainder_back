@@ -206,7 +206,7 @@ def send_board_invitation_email(email, username, board_name, invitation_link):
 
 
 
-def send_email_confirmation(self, email_address):
+def send_email_confirmation(email_address):
     """
     Sends an email confirmation using Brevo.
     """
