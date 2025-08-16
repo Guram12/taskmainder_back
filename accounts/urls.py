@@ -3,7 +3,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import RegisterView, UserProfileView, CustomGoogleLogin , CustomConfirmEmailView \
     , CustomTokenObtainPairView ,ProfileFinishView , UserEmailListView , UpdateProfilePictureView \
     , PasswordResetView, PasswordResetConfirmView , UsernameANDPhoneNumberUpdateView ,AccountDeleteView \
-    , PasswordChangeView , CheckPasswordView , NotificationPreferenceUpdateView, DiscordWebhookURLUpdateView
+    , PasswordChangeView , CheckPasswordView , NotificationPreferenceUpdateView, DiscordWebhookURLUpdateView \
+    , CustomGitHubLogin
 
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
@@ -32,24 +33,23 @@ urlpatterns = [
 
     path('notification-preference/', NotificationPreferenceUpdateView.as_view(), name='notification_preference_update'),
     path('discord-webhook-url/', DiscordWebhookURLUpdateView.as_view(), name='discord_webhook_url_update'),
+
+    path('social/github/login/', CustomGitHubLogin.as_view(), name='github_login'),
 ]
 
 
+# Client ID
+#  Ov23lipQ6q9Raj9gjEvv
+
+
+# Client secrets
+# b1cdc3289f549c633836d0f32ff3d21b7ad0a4e5
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
+# b1cdc3289f549c633836d0f32ff3d21b7ad0a4e5
 
 
 
