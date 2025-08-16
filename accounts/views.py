@@ -162,6 +162,92 @@ class CustomGoogleLogin(APIView):
                 return username
 
 
+# ================================================== GitHub login view ==========================================
+class CustomGitHubLogin(APIView):
+    def post(self, request, *args, **kwargs):
+        logger.debug(f"GitHub login request data: {request.data}")
+        code = request.data.get('code')
+        if not code:
+            return Response({'error': 'Authorization code is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Exchange code for access token
+            token_response = requests.post('https://github.com/login/oauth/access_token', {
+                'client_id': settings.GITHUB_CLIENT_ID,
+                'client_secret': settings.GITHUB_CLIENT_SECRET,
+                'code': code,
+            }, headers={'Accept': 'application/json'})
+            
+            token_data = token_response.json()
+            if 'access_token' not in token_data:
+                return Response({'error': 'Failed to get access token from GitHub'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Get user info from GitHub
+            user_response = requests.get('https://api.github.com/user', headers={
+                'Authorization': f"token {token_data['access_token']}",
+                'Accept': 'application/json'
+            })
+            
+            user_data = user_response.json()
+            if 'email' not in user_data or not user_data['email']:
+                # Get user's primary email if not public
+                emails_response = requests.get('https://api.github.com/user/emails', headers={
+                    'Authorization': f"token {token_data['access_token']}",
+                    'Accept': 'application/json'
+                })
+                emails_data = emails_response.json()
+                primary_email = next((email['email'] for email in emails_data if email['primary']), None)
+                if not primary_email:
+                    return Response({'error': 'No email found in GitHub account'}, status=status.HTTP_400_BAD_REQUEST)
+                user_data['email'] = primary_email
+
+            # Create or get the user
+            user = self.get_user_from_github_data(user_data)
+
+            # Generate JWT tokens
+            refresh = RefreshToken.for_user(user)
+            access_token = str(refresh.access_token)
+            refresh_token = str(refresh)
+
+            return Response({
+                'access': access_token,
+                'refresh': refresh_token,
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(f"Error during GitHub login: {e}")
+            return Response({'error': 'Error during GitHub authentication'}, status=status.HTTP_400_BAD_REQUEST)
+
+    def get_user_from_github_data(self, user_data):
+        email = user_data['email']
+        base_username = user_data.get('login', email.split('@')[0])
+        username = base_username
+
+        # Check if the username already exists and generate a unique one if necessary
+        if CustomUser.objects.filter(username=username).exists():
+            username = self.generate_unique_username(base_username)
+
+        user, created = CustomUser.objects.get_or_create(email=email, defaults={
+            'username': username,
+            'is_email_verified': True,
+            'profile_picture': None, 
+            'is_social_account': True,
+        })
+
+        if not created:
+            user.is_email_verified = True
+            user.is_social_account = True 
+            user.save()
+
+        return user
+
+    def generate_unique_username(self, base_username):
+        while True:
+            username = f"{base_username}_{get_random_string(5)}"
+            if not CustomUser.objects.filter(username=username).exists():
+                return username
+
+
 # ====================================  update timezone view if user logs is with google =========================
 
 from rest_framework import generics
