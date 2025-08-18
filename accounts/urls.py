@@ -38,24 +38,6 @@ urlpatterns = [
 ]
 
 
-# Client ID
-#  Ov23lipQ6q9Raj9gjEvv
-
-
-# Client secrets
-# b1cdc3289f549c633836d0f32ff3d21b7ad0a4e5
-
-
-
-
-
-# b1cdc3289f549c633836d0f32ff3d21b7ad0a4e5
-
-
-
-
-
-
 
 
 
