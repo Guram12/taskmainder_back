@@ -1,6 +1,6 @@
-# TaskMainder - Task Management Application
+# Dailydoer - Task Management Application
 
-A full-featured task management application built with Django REST Framework, featuring real-time collaboration, email notifications, and push notifications.
+A full-featured task management application built with Django, featuring real-time collaboration, email, discord and push notifications.
 
 ## Features
 
