@@ -104,6 +104,10 @@ ALLOWED_HOSTS=localhost,127.0.0.1,your_domain.com
 # Frontend/Backend URLs
 FRONTEND_URL=http://localhost:5173
 BACKEND_URL=http://localhost:8000
+
+GITHUB_CLIENT_ID=your_github_client_id
+GITHUB_CLIENT_SECRET=your_github_client_secret
+
 ```
 
 3. **Build and Run with Docker Compose**
@@ -318,23 +322,3 @@ docker-compose logs celery_worker
 docker-compose logs celery_beat
 ```
 
-### Health Checks
-- **Django**: `http://localhost:8000/admin/`
-- **Redis**: `docker-compose exec redis redis-cli ping`
-- **Celery**: Check logs for worker/beat processes
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## License
-
-This project is licensed under the MIT License.
-
-## Support
-
-For support or questions, please open an issue in the GitHub repository.
