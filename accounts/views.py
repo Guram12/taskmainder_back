@@ -410,7 +410,7 @@ class UpdateProfilePictureView(APIView):
 from boards.models import BoardMembership, Board  
 
 class AccountDeleteView(APIView):
-    permission_classes = [IsAuthenticated]  # Ensure the user is authenticated via token
+    permission_classes = [IsAuthenticated] 
 
     def delete(self, request, *args, **kwargs):
         user = request.user
@@ -435,7 +435,7 @@ class PasswordChangeView(APIView):
         if not new_password:
             return Response({'error': 'New password is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        user = request.user  # Get the authenticated user from the request
+        user = request.user 
         user.set_password(new_password)
         user.save()
 
