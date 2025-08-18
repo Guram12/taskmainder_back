@@ -7,6 +7,7 @@ A full-featured task management application built with Django REST Framework, fe
 ### Authentication & User Management
 - **User Registration & Login** - Email-based authentication with JWT tokens
 - **Google OAuth Integration** - Sign in with Google account
+- **GitHub OAuth Integration** - Sign in with GitHub account
 - **Email Verification** - Mandatory email confirmation for new accounts
 - **Password Management** - Password reset, change, and recovery
 - **Profile Management** - Profile pictures, timezone settings, username/phone updates
@@ -32,8 +33,10 @@ A full-featured task management application built with Django REST Framework, fe
 ### Notification System
 - **Email Notifications** - Task due date reminders, board invitations
 - **Push Notifications** - Real-time browser notifications
+- **Discord Notifications** - Task reminders sent to Discord channels via webhooks
 - **In-app Notifications** - Notification center with read/unread status
 - **Notification Management** - Mark as read, delete individual or all notifications
+- **Notification Preferences** - Choose between email, Discord, or both notification types
 
 ## Tech Stack
 
@@ -54,7 +57,9 @@ A full-featured task management application built with Django REST Framework, fe
 
 ### Third-party Integrations
 - **Google OAuth** - Social authentication
+- **GitHub OAuth** - Social authentication with GitHub
 - **Web Push API** - Browser push notifications
+- **Discord Webhooks** - Send notifications to Discord channels
 - **Timezone Support** - pytz for timezone handling
 
 ## Installation & Setup
@@ -92,9 +97,17 @@ AWS_S3_REGION_NAME=your_region
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 
+# GitHub OAuth
+GITHUB_CLIENT_ID=your_github_client_id
+GITHUB_CLIENT_SECRET=your_github_client_secret
+
 # Email Configuration (Brevo)
 BREVO_EMAIL_HOST_USER=your_brevo_email
 BREVO_EMAIL_HOST_PASSWORD=your_brevo_password
+BREVO_API_KEY=your_brevo_api_key
+
+# Push Notifications
+VAPID_PRIVATE_KEY=your_vapid_private_key
 
 # Django Settings
 SECRET_KEY=your_secret_key
@@ -188,8 +201,11 @@ celery -A taskmainder beat --loglevel=info
 - `GET /acc/profile/` - User profile
 - `PATCH /acc/profile/` - Update profile
 - `POST /acc/social/login/token/` - Google OAuth login
+- `POST /acc/social/github/login/` - GitHub OAuth login
 - `POST /acc/password-reset/` - Password reset request
 - `POST /acc/password-reset-confirm/<uidb64>/<token>/` - Password reset confirmation
+- `PUT /acc/notification-preference/` - Update notification preferences
+- `PUT /acc/discord-webhook-url/` - Update Discord webhook URL
 
 ### Boards
 - `GET /api/boards/` - List user boards
@@ -258,9 +274,35 @@ The application uses WebSocket connections for real-time collaboration:
 
 Celery handles background processing:
 - **Email Notifications** - Task due date reminders
+- **Discord Notifications** - Task reminders sent to Discord channels
 - **Board Invitations** - Send invitation emails
 - **Password Reset** - Send password reset emails
 - **Push Notifications** - Browser notifications
+
+### Discord Integration
+
+The application supports Discord notifications for task reminders through webhooks:
+
+#### Setting up Discord Webhooks
+1. **Create a Discord Server** - Or use an existing server where you have admin permissions
+2. **Create a Webhook**:
+   - Go to Server Settings → Integrations → Webhooks
+   - Click "New Webhook"
+   - Choose the channel where notifications should be sent
+   - Copy the webhook URL
+3. **Configure in Application**:
+   - Use the `/acc/discord-webhook-url/` endpoint to save your webhook URL
+   - Set notification preference to 'discord' or 'both' via `/acc/notification-preference/`
+
+#### Notification Types
+- **Task Due Reminders** - Sent when tasks are approaching their due date
+- **Format**: "⏰ Reminder: Task 'Task Name' is due on [Date] (priority: [High/Medium/Low])"
+
+#### Notification Preferences
+Users can choose their preferred notification method:
+- **'email'** - Receive notifications via email only
+- **'discord'** - Receive notifications via Discord only (requires webhook URL)
+- **'both'** - Receive notifications via both email and Discord
 
 ## Security Features
 
@@ -318,23 +360,3 @@ docker-compose logs celery_worker
 docker-compose logs celery_beat
 ```
 
-### Health Checks
-- **Django**: `http://localhost:8000/admin/`
-- **Redis**: `docker-compose exec redis redis-cli ping`
-- **Celery**: Check logs for worker/beat processes
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## License
-
-This project is licensed under the MIT License.
-
-## Support
-
-For support or questions, please open an issue in the GitHub repository.
