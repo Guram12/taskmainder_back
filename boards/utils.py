@@ -1,6 +1,5 @@
 from datetime import datetime
 import pytz
-import requests
 
 def convert_to_utc(local_time: str, user_timezone: str) -> datetime:
     """
